@@ -1,6 +1,6 @@
 /*
  * The card is three layers:
- *   .card-tilt  pointer-driven 3D tilt (transform set from TypeScript)
+ *   .card-tilt  pointer-driven 3D tilt (transform written from TypeScript, see ui/tilt.ts)
  *   .card       layout box whose height animates between the two faces; shake target
  *   .face       the glass surfaces. Each face flips with its own perspective transform, so
  *               no ancestor needs `transform-style: preserve-3d`, which would break
@@ -11,19 +11,16 @@
  */
 
 .card-tilt {
-  --tilt-x: 0deg;
-  --tilt-y: 0deg;
-  --glare-x: 50%;
-  --glare-y: 0%;
-  --glare-opacity: 0;
-
   position: relative;
-  transform: perspective(1000px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+  /* Resting value; ui/tilt.ts writes the rotated transform inline while the pointer moves. */
+  transform: perspective(1000px);
 }
 
 .card {
   position: relative;
   display: grid;
+  /* A definite, shrinkable column: long unbreakable content can never widen the card. */
+  grid-template-columns: minmax(0, 1fr);
   transition: height var(--flip-duration) var(--ease-in-out);
 }
 
@@ -37,9 +34,11 @@
   position: relative;
   grid-area: 1 / 1;
   align-self: start;
-  padding: clamp(1.5rem, 1rem + 2.5vw, 2.25rem);
+  min-width: 0;
+  padding: var(--face-padding, clamp(1.5rem, 1rem + 2.5vw, 2.25rem));
   border-radius: var(--radius-xl);
   background:
+    var(--glass-grain),
     linear-gradient(
       165deg,
       rgb(255 255 255 / 9%) 0%,
@@ -81,10 +80,23 @@
   visibility: visible;
 }
 
-/* The settled, hidden face must not stretch the layout box. */
-.face[data-settled='hidden'] {
+/*
+ * Faces that are turning away (`leaving`) or settled out of view (`hidden`) are taken out of
+ * the flow, so the layout box takes the visible face's height. A settled hidden face is also
+ * clipped to that box: invisible content must not extend the page's scrollable area.
+ */
+.face[data-settled] {
   position: absolute;
   inset: 0 0 auto;
+}
+
+.face[data-settled='leaving'] {
+  pointer-events: none;
+}
+
+.face[data-settled='hidden'] {
+  max-height: 100%;
+  overflow: hidden;
 }
 
 /* Gradient hairline border: a padded pseudo-element masked down to a 1px ring. */
@@ -146,18 +158,18 @@
   opacity: 1;
 }
 
-/* Moving specular highlight that follows the pointer (see ui/tilt.ts). */
+/* Moving specular highlight that follows the pointer (position and opacity from ui/tilt.ts). */
 .face__glare {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   background: radial-gradient(
-    38rem circle at var(--glare-x) var(--glare-y),
+    38rem circle at var(--glare-x, 50%) var(--glare-y, 0%),
     rgb(255 255 255 / 13%),
     rgb(255 255 255 / 4%) 25%,
     transparent 45%
   );
-  opacity: var(--glare-opacity);
+  opacity: 0;
   pointer-events: none;
   transition: opacity var(--duration-slow) var(--ease-out);
 }
@@ -175,6 +187,8 @@
 .face__header {
   display: grid;
   gap: var(--space-2);
+  /* The glass core glows behind this corner; a soft shadow keeps the text crisp over it. */
+  text-shadow: 0 1px 14px rgb(5 6 15 / 55%);
 }
 
 .face__title {
@@ -184,6 +198,11 @@
   line-height: 1.15;
   letter-spacing: -0.025em;
   text-wrap: balance;
+}
+
+/* Focused programmatically after a flip on touch screens; not an interactive control. */
+.face__title:focus {
+  outline: none;
 }
 
 .face__subtitle {
@@ -204,28 +223,29 @@
   align-items: center;
   gap: var(--space-3);
   width: 100%;
-  min-height: 2.75rem;
+  min-height: var(--touch-target);
   padding: var(--space-2) var(--space-3);
-  border: 1px dashed rgb(157 134 255 / 45%);
+  border: 1px solid rgb(157 134 255 / 26%);
   border-radius: var(--radius-md);
-  background: rgb(123 92 255 / 10%);
+  background: linear-gradient(90deg, rgb(123 92 255 / 14%), rgb(255 94 203 / 6%));
   color: var(--color-text-accent);
   font-size: var(--text-sm);
   text-align: left;
   transition:
     background-color var(--duration-fast),
-    border-color var(--duration-fast);
+    border-color var(--duration-fast),
+    box-shadow var(--duration-base) var(--ease-out);
 }
 
 .demo-pill:hover {
-  border-color: rgb(157 134 255 / 75%);
-  background: rgb(123 92 255 / 16%);
+  border-color: rgb(157 134 255 / 55%);
+  box-shadow: 0 0 24px -8px rgb(123 92 255 / 70%);
 }
 
 .demo-pill__badge {
   padding: 0.125rem 0.5rem;
   border-radius: var(--radius-full);
-  background: rgb(123 92 255 / 30%);
+  background: var(--gradient-primary);
   color: #fff;
   font-size: var(--text-xs);
   font-weight: 600;
@@ -233,14 +253,19 @@
   text-transform: uppercase;
 }
 
+/* Email and password on their own lines: always fully visible, down to 320px wide. */
 .demo-pill__credentials {
+  display: grid;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.demo-pill__credentials > :last-child {
+  color: var(--color-text-muted);
 }
 
 .demo-pill__action {
@@ -269,7 +294,7 @@
   box-shadow:
     0 0 0 1px rgb(0 229 255 / 35%),
     0 0 48px -6px rgb(0 229 255 / 65%);
-  color: #bff8ff;
+  color: var(--color-success-light);
   animation: pop 0.6s var(--ease-spring) 0.1s backwards;
 }
 
@@ -301,8 +326,13 @@
 }
 
 .success__text {
-  max-width: 30ch;
+  max-width: 36ch;
   color: var(--color-text-muted);
+  text-wrap: balance;
+}
+
+.success__text time {
+  white-space: nowrap;
 }
 
 .success .button {

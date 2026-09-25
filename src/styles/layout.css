@@ -2,8 +2,14 @@
 
 .backdrop {
   position: fixed;
-  inset: 0;
+  inset: 0 0 auto;
   z-index: 0;
+  /*
+   * The large viewport height: the backdrop never resizes when a mobile browser's toolbar
+   * collapses while scrolling, so the WebGL canvas keeps its buffers and its framing.
+   */
+  height: 100vh;
+  height: 100lvh;
   overflow: hidden;
   background: var(--color-space);
   pointer-events: none;
@@ -23,9 +29,10 @@
     radial-gradient(22% 18% at 50% 50%, rgb(255 190 120 / 22%), transparent 70%),
     radial-gradient(70% 60% at 50% 50%, rgb(40 24 110 / 45%), transparent 75%);
   animation: nebula-drift 28s var(--ease-in-out) infinite alternate;
+  /* Showing is immediate, so a lost WebGL context never leaves a blank screen. */
   transition:
     opacity 1.2s var(--ease-out),
-    visibility 0s linear 1.2s;
+    visibility 0s;
 }
 
 /* A sparse, static star field made from tiny gradients: no image request needed. */
@@ -63,6 +70,10 @@
   opacity: 0;
   visibility: hidden;
   animation-play-state: paused;
+  /* Hiding waits for the cross-fade to finish. */
+  transition:
+    opacity 1.2s var(--ease-out),
+    visibility 0s linear 1.2s;
 }
 
 /* Darkens the edges so the card and footer text always sit on a calm background. */
@@ -76,20 +87,23 @@
 
 /* ---------- Page shell ---------- */
 
+/*
+ * Anchored to the top rather than centred: the card grows downwards when it flips to the
+ * taller "Create account" face, so the brand never slides around. The footer is pushed to
+ * the bottom of the viewport and stays put as well.
+ */
 .shell {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: clamp(1.25rem, 3vh, 2rem);
   min-height: 100vh;
   min-height: 100dvh;
-  padding: max(clamp(1.5rem, 5vh, 3rem), env(safe-area-inset-top))
+  padding: max(clamp(1.5rem, 8vh, 5rem), env(safe-area-inset-top))
     max(1rem, env(safe-area-inset-right))
-    max(clamp(1.5rem, 4vh, 2.5rem), env(safe-area-inset-bottom))
-    max(1rem, env(safe-area-inset-left));
+    max(clamp(1.25rem, 3vh, 2rem), env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
 }
 
 .auth {
@@ -125,9 +139,12 @@
 /* ---------- Footer ---------- */
 
 .footer {
+  margin-top: auto;
   color: var(--color-text-subtle);
   font-size: var(--text-sm);
   text-align: center;
+  /* Stays legible wherever the galaxy's bright arms happen to pass behind it. */
+  text-shadow: 0 1px 12px rgb(5 6 15 / 85%);
   animation: fade-up 0.8s var(--ease-out) 0.35s backwards;
 }
 
@@ -149,4 +166,12 @@
 .footer__link .icon {
   width: 1em;
   height: 1em;
+}
+
+@media (pointer: coarse) {
+  .footer__link {
+    min-height: var(--touch-target);
+    padding-block: 0.625rem;
+    margin-block: -0.625rem;
+  }
 }

@@ -1,4 +1,5 @@
 .form {
+  position: relative;
   display: grid;
   gap: var(--space-4);
 }
@@ -15,11 +16,24 @@
   background: rgb(255 77 109 / 10%);
   color: var(--color-text-danger);
   font-size: var(--text-sm);
+}
+
+.form__status:not(:empty) {
   animation: fade-up 0.35s var(--ease-out);
 }
 
+/*
+ * The empty alert stays rendered (a live region must exist before its text changes, or some
+ * screen readers never announce it) but takes no space in the form's grid.
+ */
 .form__status:empty {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
 }
 
 .form__row {
@@ -69,7 +83,9 @@
 
 .field__input:focus {
   border-color: rgb(157 134 255 / 90%);
-  outline: none;
+  /* Invisible normally, but forced-colors mode paints it, so focus is never lost there. */
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   background: var(--color-surface-hover);
   box-shadow: var(--shadow-focus);
 }
@@ -78,7 +94,9 @@
   border-color: var(--color-danger);
 }
 
+/* Every invalid field is red after a failed submit; the focused one gets a clear ring. */
 .field__input[aria-invalid='true']:focus {
+  outline-color: var(--color-danger);
   box-shadow:
     0 0 0 4px rgb(255 77 109 / 20%),
     0 0 24px -6px rgb(255 77 109 / 55%);
@@ -91,7 +109,7 @@
 /* Keep browser autofill on-theme instead of the default yellow/blue fill. */
 .field__input:-webkit-autofill {
   -webkit-text-fill-color: var(--color-text);
-  box-shadow: inset 0 0 0 100px #16183a;
+  box-shadow: inset 0 0 0 100px var(--color-autofill);
   transition: background-color 600000s 0s;
 }
 
@@ -138,7 +156,7 @@
   color: var(--color-violet-light);
 }
 
-/* Show / hide password */
+/* Show / hide password (44px on touch screens, see the pointer: coarse block below) */
 .field__toggle {
   position: absolute;
   top: 50%;
@@ -211,13 +229,13 @@
 
 /* ---------- Password strength meter ---------- */
 
+/* Always rendered: before the first keystroke it states the password requirements. */
 .strength {
   --strength-color: var(--strength-0);
 
   display: grid;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-1) 0;
-  animation: fade-up 0.3s var(--ease-out);
 }
 
 .strength[data-score='1'] {
@@ -251,8 +269,8 @@
     box-shadow var(--duration-slow) var(--ease-out);
 }
 
-/* Score 0 lights one segment so "very weak" is still visibly red. */
-.strength__segment:first-child,
+/* Score 0 lights one segment so "very weak" is still visibly red; empty lights none. */
+.strength:not([data-score='']) .strength__segment:first-child,
 .strength[data-score='2'] .strength__segment:nth-child(-n + 2),
 .strength[data-score='3'] .strength__segment:nth-child(-n + 3),
 .strength[data-score='4'] .strength__segment {
@@ -263,9 +281,13 @@
 .strength__text {
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   gap: 0 var(--space-2);
+  /* Room for two lines, so a longer hint never pushes the fields below while typing. */
+  min-height: 2.8em;
   color: var(--color-text-subtle);
   font-size: var(--text-sm);
+  line-height: 1.4;
 }
 
 .strength__label {
@@ -354,6 +376,10 @@
   border-color: var(--color-danger);
 }
 
+.checkbox__input[aria-disabled='true'] + .checkbox__box {
+  opacity: 0.6;
+}
+
 /* ---------- Divider ---------- */
 
 .divider {
@@ -374,4 +400,48 @@
 
 .divider::after {
   background: linear-gradient(270deg, transparent, rgb(255 255 255 / 18%));
+}
+
+/* ---------- Touch screens: 44px targets without changing the layout ---------- */
+
+@media (pointer: coarse) {
+  .field__toggle {
+    width: var(--touch-target);
+    height: var(--touch-target);
+    right: 0.375rem;
+  }
+
+  /* Padding grows the tappable label; the negative margin gives the space back. */
+  .checkbox {
+    padding-block: 0.625rem;
+    margin-block: -0.625rem;
+  }
+
+  .checkbox__input {
+    top: 0.75rem;
+  }
+}
+
+/* ---------- Forced colors (Windows High Contrast) ---------- */
+
+@media (forced-colors: active) {
+  .field__input:focus,
+  .field__input[aria-invalid='true']:focus {
+    outline-color: Highlight;
+  }
+
+  .checkbox__box {
+    forced-color-adjust: none;
+    border-color: CanvasText;
+  }
+
+  .checkbox__input:checked + .checkbox__box {
+    background: Highlight;
+  }
+
+  /* Keep the strength colours; the outline shows the empty segments. */
+  .strength__segment {
+    forced-color-adjust: none;
+    border: 1px solid CanvasText;
+  }
 }

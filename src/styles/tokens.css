@@ -15,11 +15,16 @@
   --color-amber: #ffb020;
   --color-green: #34d399;
   --color-red: #ff4d6d;
+  --color-success: #2ef2c4;
+  --color-success-light: #bff8ff;
 
-  /* Text — all values meet WCAG 2.2 AA (≥ 4.5:1) on the glass surface */
+  /*
+   * Text — all values meet WCAG 2.2 AA (≥ 4.5:1) on the glass surface, including over the
+   * brightest galaxy arm that can sit behind the card (see docs/ARCHITECTURE.md).
+   */
   --color-text: #f2f3ff;
-  --color-text-muted: #aab1d6;
-  --color-text-subtle: #9aa2c9;
+  --color-text-muted: #b6bde0;
+  --color-text-subtle: #a7aed4;
   --color-text-accent: #c9bfff;
   --color-text-danger: #ff9aae;
   --color-text-warning: #ffcf7a;
@@ -31,6 +36,12 @@
   --color-border-strong: rgb(255 255 255 / 22%);
   --color-focus: #9d86ff;
   --color-danger: #ff6b86;
+  --color-autofill: #16183a;
+
+  /* Blocked button (e.g. during a lockout) */
+  --color-disabled-start: #3f3a6e;
+  --color-disabled-end: #4a3b72;
+  --color-text-on-disabled: #e4e1ff;
 
   /* Password strength scale: red → amber → green → cyan */
   --strength-0: #ff4d6d;
@@ -40,10 +51,12 @@
   --strength-4: #00e5ff;
 
   /* Glass */
-  --glass-fill: rgb(12 14 34 / 66%);
-  --glass-blur: 22px;
-  --glass-saturate: 170%;
+  --glass-fill: rgb(12 14 34 / 58%);
+  --glass-blur: 28px;
+  --glass-saturate: 180%;
   --glass-highlight: rgb(255 255 255 / 14%);
+  /* Fine grain: makes the glass read as frosted and prevents banding in the dark gradient. */
+  --glass-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .045 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 
   /* Primary gradient. Every stop keeps white text above 4.5:1 contrast. */
   --gradient-primary: linear-gradient(120deg, #5b3fe4 0%, #7a3fe0 35%, #a23bc4 70%, #b8399c 100%);
@@ -106,4 +119,6 @@
   --card-width: 27rem;
   --field-height: 3.5rem;
   --perspective: 1400px;
+  /* Minimum size of touch targets on coarse pointers. */
+  --touch-target: 2.75rem;
 }

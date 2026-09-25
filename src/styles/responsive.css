@@ -1,0 +1,37 @@
+/*
+ * Layout adjustments that must override the component styles, so this file is imported
+ * after them (see index.css).
+ */
+
+/*
+ * Short screens (13" laptops, landscape tablets): tighter spacing so the taller
+ * "Create account" face still fits next to the brand.
+ */
+@media (max-height: 860px) {
+  :root {
+    --field-height: 3.25rem;
+  }
+
+  .shell {
+    gap: 1rem;
+    padding-top: max(clamp(1rem, 4vh, 2rem), env(safe-area-inset-top));
+  }
+
+  .face__panel[data-panel='form'] > * + * {
+    margin-top: var(--space-4);
+  }
+
+  .form {
+    gap: var(--space-3);
+  }
+
+  .button--social {
+    min-height: var(--touch-target);
+  }
+}
+
+@media (max-height: 860px) and (min-width: 481px) {
+  .face {
+    --face-padding: 1.75rem;
+  }
+}

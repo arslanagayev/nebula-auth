@@ -74,3 +74,10 @@
 .toast[data-leaving] {
   animation: toast-out 0.25s var(--ease-in-out) forwards;
 }
+
+@media (pointer: coarse) {
+  .toast__close {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+}

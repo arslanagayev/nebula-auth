@@ -90,9 +90,9 @@
 
 /* Blocked (e.g. lockout countdown) but still focusable and announced. */
 .button--primary[aria-disabled='true']:not([aria-busy='true']) {
-  background: linear-gradient(120deg, #3f3a6e, #4a3b72);
+  background: linear-gradient(120deg, var(--color-disabled-start), var(--color-disabled-end));
   box-shadow: none;
-  color: #e4e1ff;
+  color: var(--color-text-on-disabled);
   cursor: not-allowed;
 }
 
@@ -180,8 +180,23 @@
   text-decoration-color: currentcolor;
 }
 
+/* The flip links pause while a request is pending (see ui/authForms.ts). */
+.link[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .link--accent {
   color: var(--color-violet-light);
   font-weight: 600;
   text-decoration-color: rgb(183 166 255 / 40%);
+}
+
+/* Touch screens: 44px tap targets. The negative margin keeps the visual rhythm unchanged. */
+@media (pointer: coarse) {
+  .link {
+    min-height: var(--touch-target);
+    padding-block: 0.625rem;
+    margin-block: -0.625rem;
+  }
 }
