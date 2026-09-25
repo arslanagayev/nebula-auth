@@ -64,7 +64,7 @@ No UI framework on purpose: the project shows what the platform can do with well
 
 ## Getting started
 
-Requires **Node.js 22.13+** (22 LTS or 24 LTS; the repository pins 24 in `.nvmrc`).
+Requires **Node.js 22.13+** (22 LTS or 24 LTS; the repository pins 24 in `.nvmrc`, and CI tests both).
 
 ```bash
 git clone https://github.com/arslanagayev/nebula-auth.git
@@ -75,7 +75,7 @@ npm run dev
 
 Open the printed URL (usually <http://localhost:5173>).
 
-To deploy your own copy, push to GitHub and set **Settings → Pages → Source** to **GitHub Actions**. The deploy workflow reads the correct base path from the Pages configuration, so a renamed fork or a custom domain works without changes.
+To deploy your own copy: push to GitHub, set **Settings → Pages → Source** to **GitHub Actions**, then re-run the Deploy workflow (**Actions → Deploy → Run workflow**). The first run fails until Pages is enabled, which leaves the Deploy badge red until it is re-run. The workflow lints and tests before it builds, and reads the correct base path from the Pages configuration, so a renamed fork or a custom domain works without changes.
 
 ## Scripts
 
