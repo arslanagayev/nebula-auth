@@ -3,8 +3,10 @@ import { FrameBudget } from '../src/lib/frameBudget';
 import {
   degradeQuality,
   detectTier,
+  effectivePixelRatio,
   PARTICLE_COUNTS,
   resolveQuality,
+  TRANSMISSION_SCALE,
   type DeviceSignals,
 } from '../src/lib/quality';
 import { mulberry32 } from '../src/lib/random';
@@ -61,9 +63,26 @@ describe('resolveQuality', () => {
       tier: 'high',
       particleCount: PARTICLE_COUNTS.high,
       pixelRatio: 2,
+      maxPixelRatio: 2,
       bloom: true,
       antialias: false,
+      transmission: TRANSMISSION_SCALE.high,
+      adaptive: true,
     });
+  });
+
+  it('renders the transmission pass at reduced resolution, and not at all on low-end devices', () => {
+    expect(resolveQuality(desktop).transmission).toBe(0.5);
+    expect(resolveQuality(phone).transmission).toBe(0.35);
+    expect(resolveQuality({ ...phone, hardwareConcurrency: 2 }).transmission).toBe(0);
+  });
+
+  it('can pin a tier, which also turns adaptive quality off', () => {
+    const pinned = resolveQuality(phone, { tier: 'high' });
+    expect(pinned).toMatchObject({ tier: 'high', particleCount: PARTICLE_COUNTS.high });
+    expect(pinned.adaptive).toBe(false);
+    // The pixel-ratio cap still follows the device.
+    expect(pinned.maxPixelRatio).toBe(1.5);
   });
 
   it('caps the pixel ratio at 1.5 on mobile and skips bloom', () => {
@@ -79,9 +98,15 @@ describe('resolveQuality', () => {
     });
   });
 
-  it('enables MSAA on standard density screens', () => {
+  it('enables MSAA on the canvas only for standard density screens without bloom', () => {
+    // With bloom the scene renders into the composer's multisampled target instead.
     expect(resolveQuality({ ...desktop, devicePixelRatio: 1 })).toMatchObject({
       pixelRatio: 1,
+      bloom: true,
+      antialias: false,
+    });
+    expect(resolveQuality({ ...phone, devicePixelRatio: 1 })).toMatchObject({
+      bloom: false,
       antialias: true,
     });
   });
@@ -95,66 +120,112 @@ describe('resolveQuality', () => {
   });
 });
 
+describe('effectivePixelRatio', () => {
+  it('follows the device within the cap, e.g. after zooming or moving to another monitor', () => {
+    expect(effectivePixelRatio(1.25, 2)).toBe(1.25);
+    expect(effectivePixelRatio(3, 2)).toBe(2);
+    expect(effectivePixelRatio(0.8, 2)).toBe(1);
+  });
+});
+
 describe('degradeQuality', () => {
-  it('drops bloom first, then resolution in half steps, then gives up', () => {
+  it('drops bloom, then refraction resolution, then pixel ratio in half steps, then gives up', () => {
     const steps = [];
     let profile = resolveQuality(desktop);
     for (let next = degradeQuality(profile); next; next = degradeQuality(profile)) {
-      steps.push({ bloom: next.bloom, pixelRatio: next.pixelRatio });
+      steps.push({
+        bloom: next.bloom,
+        transmission: next.transmission,
+        pixelRatio: next.pixelRatio,
+        maxPixelRatio: next.maxPixelRatio,
+      });
       profile = next;
     }
     expect(steps).toEqual([
-      { bloom: false, pixelRatio: 2 },
-      { bloom: false, pixelRatio: 1.5 },
-      { bloom: false, pixelRatio: 1 },
+      { bloom: false, transmission: 0.5, pixelRatio: 2, maxPixelRatio: 2 },
+      { bloom: false, transmission: 0.25, pixelRatio: 2, maxPixelRatio: 2 },
+      { bloom: false, transmission: 0.25, pixelRatio: 1.5, maxPixelRatio: 1.5 },
+      { bloom: false, transmission: 0.25, pixelRatio: 1, maxPixelRatio: 1 },
     ]);
+  });
+
+  it('never turns refraction back on for devices that render without it', () => {
+    const low = resolveQuality({ ...phone, hardwareConcurrency: 2 });
+    expect(degradeQuality(low)).toBeNull();
   });
 });
 
 describe('FrameBudget', () => {
-  it('stays quiet until a full window has been sampled', () => {
-    const budget = new FrameBudget({ budgetMs: 20, windowSize: 3 });
-    expect(budget.sample(40)).toBe(false);
-    expect(budget.sample(40)).toBe(false);
-    expect(budget.sample(40)).toBe(true);
+  /** Feeds `windows` full windows of identical frames and collects the verdicts. */
+  function feed(budget: FrameBudget, frameMs: number, windows: number, windowSize: number) {
+    const verdicts = [];
+    for (let frame = 0; frame < windows * windowSize; frame += 1) {
+      const verdict = budget.sample(frameMs);
+      if (verdict !== null) verdicts.push(verdict);
+    }
+    return verdicts;
+  }
+
+  it('stays quiet until the budget is missed for several full windows', () => {
+    const budget = new FrameBudget({ budgetMs: 20, windowSize: 3, patience: 2 });
+    expect([40, 40, 40, 40, 40].map((ms) => budget.sample(ms))).toEqual([
+      null,
+      null,
+      null,
+      null,
+      null,
+    ]);
+    expect(budget.sample(40)).toBe('degrade');
+  });
+
+  it('ignores a single slow window', () => {
+    const budget = new FrameBudget({ budgetMs: 20, windowSize: 4, patience: 2 });
+    expect(feed(budget, 40, 1, 4)).toEqual([]);
+    expect(feed(budget, 10, 1, 4)).toEqual([]);
+    expect(feed(budget, 40, 1, 4)).toEqual([]);
   });
 
   it('does not report windows that average within budget', () => {
-    const budget = new FrameBudget({ budgetMs: 20, windowSize: 4 });
+    const budget = new FrameBudget({ budgetMs: 20, windowSize: 4, patience: 1 });
     const verdicts = [10, 30, 16, 18].map((ms) => budget.sample(ms));
-    expect(verdicts).toEqual([false, false, false, false]);
+    expect(verdicts).toEqual([null, null, null, null]);
   });
 
-  it('starts a fresh window after every verdict', () => {
-    const budget = new FrameBudget({ budgetMs: 20, windowSize: 2 });
-    budget.sample(50);
-    expect(budget.sample(50)).toBe(true);
-    expect(budget.sample(5)).toBe(false);
-    expect(budget.sample(5)).toBe(false);
+  it('keeps a degrade step that made frames faster and keeps adapting', () => {
+    const budget = new FrameBudget({ budgetMs: 20, windowSize: 10, patience: 1 });
+    expect(feed(budget, 45, 1, 10)).toEqual(['degrade']);
+    // Faster, but still over budget: the step is kept and the next one is requested.
+    expect(feed(budget, 30, 1, 10)).toEqual(['degrade']);
+    expect(feed(budget, 15, 3, 10)).toEqual([]);
+  });
+
+  it('undoes a step that did not help, e.g. on a display capped at 30 Hz, then stops', () => {
+    const budget = new FrameBudget({ windowSize: 30 });
+    const verdicts = feed(budget, 1000 / 30, 20, 30);
+    expect(verdicts).toEqual(['degrade', 'restore']);
   });
 
   it('ignores outliers and invalid samples', () => {
-    const budget = new FrameBudget({ budgetMs: 20, windowSize: 2, outlierMs: 100 });
+    const budget = new FrameBudget({ budgetMs: 20, windowSize: 2, outlierMs: 100, patience: 1 });
     for (const ms of [500, Number.NaN, -1, 0, Number.POSITIVE_INFINITY]) {
-      expect(budget.sample(ms)).toBe(false);
+      expect(budget.sample(ms)).toBeNull();
     }
-    expect(budget.sample(16)).toBe(false);
-    expect(budget.sample(16)).toBe(false);
+    expect(budget.sample(16)).toBeNull();
+    expect(budget.sample(16)).toBeNull();
   });
 
-  it('can be reset explicitly', () => {
-    const budget = new FrameBudget({ budgetMs: 20, windowSize: 2 });
+  it('can start a fresh window explicitly', () => {
+    const budget = new FrameBudget({ budgetMs: 20, windowSize: 2, patience: 1 });
     budget.sample(90);
     budget.reset();
     budget.sample(10);
-    expect(budget.sample(10)).toBe(false);
+    expect(budget.sample(10)).toBeNull();
   });
 
-  it('uses sensible defaults', () => {
+  it('uses sensible defaults: two slow 120-frame windows', () => {
     const budget = new FrameBudget();
-    const verdicts = Array.from({ length: 120 }, () => budget.sample(30));
-    expect(verdicts.filter(Boolean)).toHaveLength(1);
-    expect(verdicts.at(-1)).toBe(true);
+    expect(feed(budget, 30, 1, 120)).toEqual([]);
+    expect(feed(budget, 30, 1, 120)).toEqual(['degrade']);
   });
 });
 

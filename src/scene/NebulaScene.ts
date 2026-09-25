@@ -358,7 +358,7 @@ export class NebulaScene {
     const frameMs = this.#lastTime === null ? 0 : time - this.#lastTime;
     this.#lastTime = time;
 
-    if (this.#budget.sample(frameMs)) this.#degrade();
+    if (this.#budget.sample(frameMs) === 'degrade') this.#degrade();
     this.#update(dt, time / 1000);
     this.#render(dt);
   };
