@@ -1,0 +1,28 @@
+/*
+ * Reduced motion: remove decorative movement (drift, shimmer, shake, flip) but keep
+ * state changes perceivable through colour and opacity. The 3D scene renders a static
+ * frame and the tilt effect is disabled from TypeScript.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+
+  .backdrop__fallback,
+  .button--primary::before {
+    animation: none !important;
+  }
+
+  /* A loading indicator is essential feedback, so it keeps turning, just more calmly. */
+  .button[aria-busy='true'] .button__spinner {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+}

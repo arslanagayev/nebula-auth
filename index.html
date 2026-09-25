@@ -10,10 +10,518 @@
     />
     <meta name="theme-color" content="#05060f" />
     <meta name="color-scheme" content="dark" />
+    <meta property="og:title" content="Nebula — Sign in" />
+    <meta
+      property="og:description"
+      content="A glassmorphism login and sign-up UI floating in front of a real-time WebGL galaxy."
+    />
+    <meta property="og:type" content="website" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
-    <main id="main"></main>
+    <svg class="sprite" aria-hidden="true" focusable="false">
+      <symbol id="icon-mail" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="14" rx="3" />
+        <path d="m4 7.5 8 5.5 8-5.5" />
+      </symbol>
+      <symbol id="icon-lock" viewBox="0 0 24 24">
+        <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+        <path d="M8 10.5v-3a4 4 0 0 1 8 0v3" />
+      </symbol>
+      <symbol id="icon-shield" viewBox="0 0 24 24">
+        <path d="M12 3 5 6v5.5c0 4.3 2.9 8.2 7 9.5 4.1-1.3 7-5.2 7-9.5V6l-7-3Z" />
+        <path d="m9 12 2 2 4-4" />
+      </symbol>
+      <symbol id="icon-user" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+      </symbol>
+      <symbol id="icon-eye" viewBox="0 0 24 24">
+        <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </symbol>
+      <symbol id="icon-eye-off" viewBox="0 0 24 24">
+        <path d="m3 3 18 18" />
+        <path
+          d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.9 3.8M6.6 6.6C3.9 8.3 2.5 12 2.5 12S6 19 12 19a9.6 9.6 0 0 0 5.4-1.6"
+        />
+        <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24">
+        <path d="m5 12.5 4.5 4.5L19 7.5" />
+      </symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24">
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </symbol>
+      <symbol id="icon-github" viewBox="0 0 16 16">
+        <path
+          fill="currentColor"
+          stroke="none"
+          d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+        />
+      </symbol>
+      <symbol id="icon-google" viewBox="0 0 24 24">
+        <path
+          fill="#4285F4"
+          stroke="none"
+          d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.88c2.27-2.09 3.58-5.17 3.58-8.81Z"
+        />
+        <path
+          fill="#34A853"
+          stroke="none"
+          d="M12 24c3.24 0 5.96-1.07 7.94-2.9l-3.88-3.01c-1.07.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.72-4.95H1.27v3.11A12 12 0 0 0 12 24Z"
+        />
+        <path
+          fill="#FBBC05"
+          stroke="none"
+          d="M5.28 14.29A7.2 7.2 0 0 1 4.9 12c0-.8.14-1.57.38-2.29V6.6H1.27A12 12 0 0 0 0 12c0 1.94.46 3.77 1.27 5.4l4.01-3.11Z"
+        />
+        <path
+          fill="#EA4335"
+          stroke="none"
+          d="M12 4.77c1.76 0 3.34.61 4.59 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.27 6.6l4.01 3.11C6.22 6.88 8.87 4.77 12 4.77Z"
+        />
+      </symbol>
+    </svg>
+
+    <div class="backdrop" aria-hidden="true">
+      <div class="backdrop__fallback"></div>
+      <canvas class="backdrop__canvas" data-scene></canvas>
+      <div class="backdrop__vignette"></div>
+    </div>
+
+    <div class="shell">
+      <header class="brand">
+        <svg class="brand__mark" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient
+              id="brand-orb"
+              x1="13"
+              y1="12"
+              x2="27"
+              y2="28"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#ff5ecb" />
+              <stop offset=".55" stop-color="#7b5cff" />
+              <stop offset="1" stop-color="#00e5ff" />
+            </linearGradient>
+            <linearGradient
+              id="brand-ring"
+              x1="3"
+              y1="28"
+              x2="37"
+              y2="12"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#00e5ff" />
+              <stop offset=".5" stop-color="#ffffff" />
+              <stop offset="1" stop-color="#ff5ecb" />
+            </linearGradient>
+          </defs>
+          <circle cx="20" cy="20" r="8" fill="url(#brand-orb)" />
+          <ellipse
+            cx="20"
+            cy="20"
+            rx="16.5"
+            ry="5.6"
+            fill="none"
+            stroke="url(#brand-ring)"
+            stroke-width="1.8"
+            transform="rotate(-24 20 20)"
+          />
+          <circle cx="31.5" cy="8.5" r="1.4" fill="#ffffff" />
+        </svg>
+        <span class="brand__name">Nebula</span>
+      </header>
+
+      <main class="auth" id="main">
+        <div class="card-tilt" data-tilt>
+          <div class="card" data-card data-view="sign-in">
+            <!-- Front face: sign in -->
+            <section class="face face--front" data-face="sign-in" aria-labelledby="sign-in-title">
+              <div class="face__glare" aria-hidden="true"></div>
+
+              <div class="face__panel" data-panel="form">
+                <header class="face__header">
+                  <h1 class="face__title" id="sign-in-title">Welcome back</h1>
+                  <p class="face__subtitle">Sign in to continue your journey through the stars.</p>
+                </header>
+
+                <button type="button" class="demo-pill" data-fill-demo>
+                  <span class="demo-pill__badge">Demo</span>
+                  <span class="demo-pill__credentials">demo@nebula.dev · Nebula#2026</span>
+                  <span class="demo-pill__action">Autofill</span>
+                </button>
+
+                <form class="form" data-form="sign-in" novalidate>
+                  <p class="form__status" role="alert" data-form-status></p>
+
+                  <div class="field" data-field="email">
+                    <div class="field__control">
+                      <input
+                        class="field__input"
+                        id="sign-in-email"
+                        name="email"
+                        type="email"
+                        inputmode="email"
+                        autocomplete="username"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        placeholder=" "
+                        required
+                        aria-describedby="sign-in-email-error"
+                      />
+                      <label class="field__label" for="sign-in-email">Email address</label>
+                      <svg class="icon field__icon" aria-hidden="true">
+                        <use href="#icon-mail" />
+                      </svg>
+                    </div>
+                    <p class="field__error" id="sign-in-email-error" data-error></p>
+                  </div>
+
+                  <div class="field field--password" data-field="password">
+                    <div class="field__control">
+                      <input
+                        class="field__input"
+                        id="sign-in-password"
+                        name="password"
+                        type="password"
+                        autocomplete="current-password"
+                        placeholder=" "
+                        required
+                        aria-describedby="sign-in-password-error sign-in-password-caps"
+                      />
+                      <label class="field__label" for="sign-in-password">Password</label>
+                      <svg class="icon field__icon" aria-hidden="true">
+                        <use href="#icon-lock" />
+                      </svg>
+                      <button
+                        type="button"
+                        class="field__toggle"
+                        data-toggle-password
+                        aria-controls="sign-in-password"
+                        aria-pressed="false"
+                        aria-label="Show password"
+                      >
+                        <svg class="icon icon--show" aria-hidden="true">
+                          <use href="#icon-eye" />
+                        </svg>
+                        <svg class="icon icon--hide" aria-hidden="true">
+                          <use href="#icon-eye-off" />
+                        </svg>
+                      </button>
+                    </div>
+                    <p
+                      class="field__caps"
+                      id="sign-in-password-caps"
+                      aria-live="polite"
+                      data-caps
+                    ></p>
+                    <p class="field__error" id="sign-in-password-error" data-error></p>
+                  </div>
+
+                  <div class="form__row">
+                    <label class="checkbox">
+                      <input class="checkbox__input" type="checkbox" name="remember" />
+                      <span class="checkbox__box" aria-hidden="true">
+                        <svg class="icon"><use href="#icon-check" /></svg>
+                      </span>
+                      <span>Remember me</span>
+                    </label>
+                    <button type="button" class="link" data-forgot>Forgot password?</button>
+                  </div>
+
+                  <button type="submit" class="button button--primary" data-submit>
+                    <span class="button__spinner" aria-hidden="true"></span>
+                    <span class="button__label" data-submit-label>Sign in</span>
+                    <svg class="icon button__icon" aria-hidden="true">
+                      <use href="#icon-arrow" />
+                    </svg>
+                  </button>
+                </form>
+
+                <p class="divider"><span>or continue with</span></p>
+
+                <div class="social">
+                  <button type="button" class="button button--social" data-provider="GitHub">
+                    <svg class="icon icon--brand" aria-hidden="true">
+                      <use href="#icon-github" />
+                    </svg>
+                    <span>GitHub</span>
+                  </button>
+                  <button type="button" class="button button--social" data-provider="Google">
+                    <svg class="icon icon--brand" aria-hidden="true">
+                      <use href="#icon-google" />
+                    </svg>
+                    <span>Google</span>
+                  </button>
+                </div>
+
+                <p class="face__switch">
+                  New to Nebula?
+                  <button type="button" class="link link--accent" data-flip="register">
+                    Create an account
+                  </button>
+                </p>
+              </div>
+
+              <div class="face__panel success" data-panel="success" hidden>
+                <div class="success__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="m8 12.5 2.8 2.8 5.7-5.8" />
+                  </svg>
+                </div>
+                <h1 class="success__title" tabindex="-1" data-success-title>Welcome back</h1>
+                <p class="success__text" data-success-text></p>
+                <button type="button" class="button button--secondary" data-success-action>
+                  Sign out
+                </button>
+              </div>
+            </section>
+
+            <!-- Back face: create account -->
+            <section
+              class="face face--back"
+              data-face="register"
+              data-settled="hidden"
+              aria-labelledby="register-title"
+              inert
+            >
+              <div class="face__glare" aria-hidden="true"></div>
+
+              <div class="face__panel" data-panel="form">
+                <header class="face__header">
+                  <h1 class="face__title" id="register-title">Create your account</h1>
+                  <p class="face__subtitle">
+                    Join Nebula in less than a minute. No credit card required.
+                  </p>
+                </header>
+
+                <form class="form" data-form="register" novalidate>
+                  <p class="form__status" role="alert" data-form-status></p>
+
+                  <div class="field" data-field="name">
+                    <div class="field__control">
+                      <input
+                        class="field__input"
+                        id="register-name"
+                        name="name"
+                        type="text"
+                        autocomplete="name"
+                        autocapitalize="words"
+                        spellcheck="false"
+                        placeholder=" "
+                        required
+                        aria-describedby="register-name-error"
+                      />
+                      <label class="field__label" for="register-name">Full name</label>
+                      <svg class="icon field__icon" aria-hidden="true">
+                        <use href="#icon-user" />
+                      </svg>
+                    </div>
+                    <p class="field__error" id="register-name-error" data-error></p>
+                  </div>
+
+                  <div class="field" data-field="email">
+                    <div class="field__control">
+                      <input
+                        class="field__input"
+                        id="register-email"
+                        name="email"
+                        type="email"
+                        inputmode="email"
+                        autocomplete="email"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        placeholder=" "
+                        required
+                        aria-describedby="register-email-error"
+                      />
+                      <label class="field__label" for="register-email">Email address</label>
+                      <svg class="icon field__icon" aria-hidden="true">
+                        <use href="#icon-mail" />
+                      </svg>
+                    </div>
+                    <p class="field__error" id="register-email-error" data-error></p>
+                  </div>
+
+                  <div class="field field--password" data-field="password">
+                    <div class="field__control">
+                      <input
+                        class="field__input"
+                        id="register-password"
+                        name="password"
+                        type="password"
+                        autocomplete="new-password"
+                        passwordrules="minlength: 8; maxlength: 128;"
+                        placeholder=" "
+                        required
+                        aria-describedby="register-password-error register-password-caps register-password-strength"
+                      />
+                      <label class="field__label" for="register-password">Password</label>
+                      <svg class="icon field__icon" aria-hidden="true">
+                        <use href="#icon-lock" />
+                      </svg>
+                      <button
+                        type="button"
+                        class="field__toggle"
+                        data-toggle-password
+                        aria-controls="register-password"
+                        aria-pressed="false"
+                        aria-label="Show password"
+                      >
+                        <svg class="icon icon--show" aria-hidden="true">
+                          <use href="#icon-eye" />
+                        </svg>
+                        <svg class="icon icon--hide" aria-hidden="true">
+                          <use href="#icon-eye-off" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="strength" data-strength data-score="" hidden>
+                      <div class="strength__bar" aria-hidden="true">
+                        <span class="strength__segment"></span>
+                        <span class="strength__segment"></span>
+                        <span class="strength__segment"></span>
+                        <span class="strength__segment"></span>
+                      </div>
+                      <p class="strength__text" id="register-password-strength">
+                        <span class="visually-hidden">Password strength:</span>
+                        <strong class="strength__label" data-strength-label></strong>
+                        <span class="strength__hint" data-strength-hint></span>
+                      </p>
+                    </div>
+                    <p
+                      class="field__caps"
+                      id="register-password-caps"
+                      aria-live="polite"
+                      data-caps
+                    ></p>
+                    <p class="field__error" id="register-password-error" data-error></p>
+                  </div>
+
+                  <div class="field field--password" data-field="confirm">
+                    <div class="field__control">
+                      <input
+                        class="field__input"
+                        id="register-confirm"
+                        name="confirm"
+                        type="password"
+                        autocomplete="new-password"
+                        placeholder=" "
+                        required
+                        aria-describedby="register-confirm-error"
+                      />
+                      <label class="field__label" for="register-confirm">Confirm password</label>
+                      <svg class="icon field__icon" aria-hidden="true">
+                        <use href="#icon-shield" />
+                      </svg>
+                      <button
+                        type="button"
+                        class="field__toggle"
+                        data-toggle-password
+                        aria-controls="register-confirm"
+                        aria-pressed="false"
+                        aria-label="Show password"
+                      >
+                        <svg class="icon icon--show" aria-hidden="true">
+                          <use href="#icon-eye" />
+                        </svg>
+                        <svg class="icon icon--hide" aria-hidden="true">
+                          <use href="#icon-eye-off" />
+                        </svg>
+                      </button>
+                    </div>
+                    <p class="field__error" id="register-confirm-error" data-error></p>
+                  </div>
+
+                  <div class="field field--checkbox" data-field="terms">
+                    <label class="checkbox">
+                      <input
+                        class="checkbox__input"
+                        type="checkbox"
+                        name="terms"
+                        required
+                        aria-describedby="register-terms-error"
+                      />
+                      <span class="checkbox__box" aria-hidden="true">
+                        <svg class="icon"><use href="#icon-check" /></svg>
+                      </span>
+                      <span>I agree to the Terms of Service and Privacy Policy</span>
+                    </label>
+                    <p class="field__error" id="register-terms-error" data-error></p>
+                  </div>
+
+                  <button type="submit" class="button button--primary" data-submit>
+                    <span class="button__spinner" aria-hidden="true"></span>
+                    <span class="button__label" data-submit-label>Create account</span>
+                    <svg class="icon button__icon" aria-hidden="true">
+                      <use href="#icon-arrow" />
+                    </svg>
+                  </button>
+                </form>
+
+                <p class="divider"><span>or continue with</span></p>
+
+                <div class="social">
+                  <button type="button" class="button button--social" data-provider="GitHub">
+                    <svg class="icon icon--brand" aria-hidden="true">
+                      <use href="#icon-github" />
+                    </svg>
+                    <span>GitHub</span>
+                  </button>
+                  <button type="button" class="button button--social" data-provider="Google">
+                    <svg class="icon icon--brand" aria-hidden="true">
+                      <use href="#icon-google" />
+                    </svg>
+                    <span>Google</span>
+                  </button>
+                </div>
+
+                <p class="face__switch">
+                  Already have an account?
+                  <button type="button" class="link link--accent" data-flip="sign-in">
+                    Sign in
+                  </button>
+                </p>
+              </div>
+
+              <div class="face__panel success" data-panel="success" hidden>
+                <div class="success__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="m8 12.5 2.8 2.8 5.7-5.8" />
+                  </svg>
+                </div>
+                <h1 class="success__title" tabindex="-1" data-success-title>Welcome aboard</h1>
+                <p class="success__text" data-success-text></p>
+                <button type="button" class="button button--secondary" data-success-action>
+                  Continue to sign in
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <p>
+          Built with Three.js ·
+          <a class="footer__link" href="https://github.com/{{GITHUB_USER}}/nebula-auth">
+            <svg class="icon icon--brand" aria-hidden="true"><use href="#icon-github" /></svg>
+            Source on GitHub
+          </a>
+        </p>
+      </footer>
+    </div>
+
+    <div class="toasts" role="status" aria-live="polite" data-toasts></div>
+
+    <noscript>
+      <p class="noscript">Nebula needs JavaScript for its interactive sign-in demo.</p>
+    </noscript>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

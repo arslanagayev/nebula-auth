@@ -1,0 +1,109 @@
+/*
+ * Design tokens. Every colour, radius, shadow and timing used by the UI is defined here,
+ * so the theme can be adjusted in one place.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Palette */
+  --color-space: #05060f;
+  --color-space-raised: #0b0d20;
+  --color-violet: #7b5cff;
+  --color-violet-light: #b7a6ff;
+  --color-cyan: #00e5ff;
+  --color-pink: #ff5ecb;
+  --color-amber: #ffb020;
+  --color-green: #34d399;
+  --color-red: #ff4d6d;
+
+  /* Text — all values meet WCAG 2.2 AA (≥ 4.5:1) on the glass surface */
+  --color-text: #f2f3ff;
+  --color-text-muted: #aab1d6;
+  --color-text-subtle: #9aa2c9;
+  --color-text-accent: #c9bfff;
+  --color-text-danger: #ff9aae;
+  --color-text-warning: #ffcf7a;
+
+  /* Surfaces and lines */
+  --color-surface: rgb(255 255 255 / 4%);
+  --color-surface-hover: rgb(255 255 255 / 7%);
+  --color-border: rgb(255 255 255 / 12%);
+  --color-border-strong: rgb(255 255 255 / 22%);
+  --color-focus: #9d86ff;
+  --color-danger: #ff6b86;
+
+  /* Password strength scale: red → amber → green → cyan */
+  --strength-0: #ff4d6d;
+  --strength-1: #ff7a45;
+  --strength-2: #ffb020;
+  --strength-3: #34d399;
+  --strength-4: #00e5ff;
+
+  /* Glass */
+  --glass-fill: rgb(12 14 34 / 66%);
+  --glass-blur: 22px;
+  --glass-saturate: 170%;
+  --glass-highlight: rgb(255 255 255 / 14%);
+
+  /* Primary gradient. Every stop keeps white text above 4.5:1 contrast. */
+  --gradient-primary: linear-gradient(120deg, #5b3fe4 0%, #7a3fe0 35%, #a23bc4 70%, #b8399c 100%);
+  --gradient-hairline: linear-gradient(
+    150deg,
+    rgb(255 255 255 / 45%) 0%,
+    rgb(123 92 255 / 35%) 25%,
+    rgb(255 255 255 / 6%) 50%,
+    rgb(0 229 255 / 22%) 75%,
+    rgb(255 94 203 / 40%) 100%
+  );
+
+  /* Typography */
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
+  --font-display: 'Space Grotesk Variable', 'Space Grotesk', var(--font-sans);
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', menlo, consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: clamp(1.5rem, 1.2rem + 1.2vw, 1.875rem);
+
+  /* Spacing (4px grid) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+
+  /* Shape */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --radius-full: 999px;
+
+  /* Elevation: layered shadows read as real depth instead of a flat blur */
+  --shadow-card:
+    inset 0 1px 0 var(--glass-highlight), inset 0 0 0 1px rgb(255 255 255 / 2%),
+    0 1px 1px rgb(0 0 0 / 25%), 0 12px 32px -12px rgb(0 0 0 / 60%),
+    0 40px 90px -30px rgb(34 16 92 / 75%);
+  --shadow-button: 0 10px 24px -10px rgb(123 92 255 / 75%), inset 0 1px 0 rgb(255 255 255 / 25%);
+  --shadow-focus: 0 0 0 4px rgb(123 92 255 / 24%), 0 0 24px -6px rgb(123 92 255 / 60%);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 500ms;
+  /* Overridden from TypeScript so CSS and JS share a single source of truth. */
+  --flip-duration: 900ms;
+
+  /* Layout */
+  --card-width: 27rem;
+  --field-height: 3.5rem;
+  --perspective: 1400px;
+}

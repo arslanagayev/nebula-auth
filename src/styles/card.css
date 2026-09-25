@@ -1,0 +1,316 @@
+/*
+ * The card is three layers:
+ *   .card-tilt  pointer-driven 3D tilt (transform set from TypeScript)
+ *   .card       layout box whose height animates between the two faces; shake target
+ *   .face       the glass surfaces. Each face flips with its own perspective transform, so
+ *               no ancestor needs `transform-style: preserve-3d`, which would break
+ *               `backdrop-filter` in several browsers.
+ *
+ * Nothing above a face may use opacity, filter or mask: those create a "backdrop root" and
+ * the frosted glass would stop seeing the galaxy behind it.
+ */
+
+.card-tilt {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --glare-x: 50%;
+  --glare-y: 0%;
+  --glare-opacity: 0;
+
+  position: relative;
+  transform: perspective(1000px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+}
+
+.card {
+  position: relative;
+  display: grid;
+  transition: height var(--flip-duration) var(--ease-in-out);
+}
+
+.card.is-shaking {
+  animation: shake 0.55s var(--ease-out);
+}
+
+/* ---------- Faces ---------- */
+
+.face {
+  position: relative;
+  grid-area: 1 / 1;
+  align-self: start;
+  padding: clamp(1.5rem, 1rem + 2.5vw, 2.25rem);
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(
+      165deg,
+      rgb(255 255 255 / 9%) 0%,
+      rgb(255 255 255 / 2.5%) 38%,
+      rgb(255 255 255 / 0%) 60%
+    ),
+    var(--glass-fill);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  transform: perspective(var(--perspective)) rotateY(0deg);
+  transition:
+    transform var(--flip-duration) var(--ease-in-out),
+    box-shadow var(--duration-slow) var(--ease-out),
+    visibility 0s linear calc(var(--flip-duration) / 2);
+}
+
+.face--front {
+  animation: card-enter 1s var(--ease-out) 0.15s backwards;
+}
+
+.face--back {
+  transform: perspective(var(--perspective)) rotateY(180deg);
+  visibility: hidden;
+}
+
+/*
+ * Both faces rotate in the same direction, so the card turns over as one object. Instead of
+ * `backface-visibility` (unreliable together with `backdrop-filter` in some engines), each face
+ * switches `visibility` exactly at the half-way point, when it is edge-on and invisible anyway.
+ */
+.card[data-view='register'] .face--front {
+  transform: perspective(var(--perspective)) rotateY(-180deg);
+  visibility: hidden;
+}
+
+.card[data-view='register'] .face--back {
+  transform: perspective(var(--perspective)) rotateY(0deg);
+  visibility: visible;
+}
+
+/* The settled, hidden face must not stretch the layout box. */
+.face[data-settled='hidden'] {
+  position: absolute;
+  inset: 0 0 auto;
+}
+
+/* Gradient hairline border: a padded pseudo-element masked down to a 1px ring. */
+.face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--gradient-hairline);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  pointer-events: none;
+  transition: opacity var(--duration-slow) var(--ease-out);
+}
+
+/* Coloured ring used for success / error feedback, cross-faded over the hairline. */
+.face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--face-accent, transparent);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-slow) var(--ease-out);
+}
+
+.card[data-feedback='error'] .face {
+  --face-accent: linear-gradient(150deg, var(--color-danger), rgb(255 107 134 / 30%));
+  --face-glow: rgb(255 77 109 / 55%);
+}
+
+.card[data-feedback='success'] .face {
+  --face-accent: linear-gradient(150deg, var(--color-cyan), var(--color-green));
+  --face-glow: rgb(0 229 255 / 55%);
+}
+
+.card[data-feedback] .face {
+  box-shadow:
+    var(--shadow-card),
+    0 0 56px -10px var(--face-glow);
+}
+
+.card[data-feedback] .face::after {
+  opacity: 1;
+}
+
+/* Moving specular highlight that follows the pointer (see ui/tilt.ts). */
+.face__glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    38rem circle at var(--glare-x) var(--glare-y),
+    rgb(255 255 255 / 13%),
+    rgb(255 255 255 / 4%) 25%,
+    transparent 45%
+  );
+  opacity: var(--glare-opacity);
+  pointer-events: none;
+  transition: opacity var(--duration-slow) var(--ease-out);
+}
+
+.face__panel {
+  position: relative;
+}
+
+.face__panel[data-panel='form'] > * + * {
+  margin-top: var(--space-5);
+}
+
+/* ---------- Header ---------- */
+
+.face__header {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.face__title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.face__subtitle {
+  color: var(--color-text-muted);
+  text-wrap: pretty;
+}
+
+.face__switch {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+/* ---------- Demo credentials pill ---------- */
+
+.demo-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed rgb(157 134 255 / 45%);
+  border-radius: var(--radius-md);
+  background: rgb(123 92 255 / 10%);
+  color: var(--color-text-accent);
+  font-size: var(--text-sm);
+  text-align: left;
+  transition:
+    background-color var(--duration-fast),
+    border-color var(--duration-fast);
+}
+
+.demo-pill:hover {
+  border-color: rgb(157 134 255 / 75%);
+  background: rgb(123 92 255 / 16%);
+}
+
+.demo-pill__badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: rgb(123 92 255 / 30%);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.demo-pill__credentials {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.demo-pill__action {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---------- Success state ---------- */
+
+.success {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  padding-block: var(--space-6) var(--space-2);
+  text-align: center;
+  animation: fade-up 0.7s var(--ease-out) backwards;
+}
+
+.success__icon {
+  display: grid;
+  place-items: center;
+  width: 4.75rem;
+  height: 4.75rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgb(0 229 255 / 32%), rgb(52 211 153 / 12%));
+  box-shadow:
+    0 0 0 1px rgb(0 229 255 / 35%),
+    0 0 48px -6px rgb(0 229 255 / 65%);
+  color: #bff8ff;
+  animation: pop 0.6s var(--ease-spring) 0.1s backwards;
+}
+
+.success__icon svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.success__icon path {
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+  animation: draw 0.5s var(--ease-out) 0.45s forwards;
+}
+
+.success__title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.success__title:focus {
+  outline: none;
+}
+
+.success__text {
+  max-width: 30ch;
+  color: var(--color-text-muted);
+}
+
+.success .button {
+  margin-top: var(--space-2);
+}
+
+@media (max-width: 480px) {
+  .face {
+    border-radius: var(--radius-lg);
+  }
+}

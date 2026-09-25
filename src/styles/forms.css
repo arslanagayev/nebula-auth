@@ -1,0 +1,377 @@
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.form[aria-busy='true'] .field__input {
+  cursor: progress;
+}
+
+/* Inline alert for authentication errors (e.g. wrong password, lockout). */
+.form__status {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgb(255 107 134 / 40%);
+  border-radius: var(--radius-md);
+  background: rgb(255 77 109 / 10%);
+  color: var(--color-text-danger);
+  font-size: var(--text-sm);
+  animation: fade-up 0.35s var(--ease-out);
+}
+
+.form__status:empty {
+  display: none;
+}
+
+.form__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+/* ---------- Text fields with floating labels ---------- */
+
+.field {
+  display: grid;
+}
+
+.field__control {
+  position: relative;
+}
+
+.field__input {
+  display: block;
+  width: 100%;
+  height: var(--field-height);
+  padding: 1.375rem var(--space-4) 0.375rem 2.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  /* 16px prevents iOS Safari from zooming into focused inputs. */
+  font-size: var(--text-md);
+  caret-color: var(--color-violet-light);
+  appearance: none;
+  transition:
+    border-color var(--duration-base) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+.field--password .field__input {
+  padding-right: 3.25rem;
+}
+
+.field__input:hover {
+  border-color: var(--color-border-strong);
+}
+
+.field__input:focus {
+  border-color: rgb(157 134 255 / 90%);
+  outline: none;
+  background: var(--color-surface-hover);
+  box-shadow: var(--shadow-focus);
+}
+
+.field__input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.field__input[aria-invalid='true']:focus {
+  box-shadow:
+    0 0 0 4px rgb(255 77 109 / 20%),
+    0 0 24px -6px rgb(255 77 109 / 55%);
+}
+
+.field__input[aria-invalid='false'] {
+  border-color: rgb(52 211 153 / 45%);
+}
+
+/* Keep browser autofill on-theme instead of the default yellow/blue fill. */
+.field__input:-webkit-autofill {
+  -webkit-text-fill-color: var(--color-text);
+  box-shadow: inset 0 0 0 100px #16183a;
+  transition: background-color 600000s 0s;
+}
+
+.field__label {
+  position: absolute;
+  top: 0;
+  left: 2.875rem;
+  display: flex;
+  align-items: center;
+  height: var(--field-height);
+  max-width: calc(100% - 4rem);
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  white-space: nowrap;
+  pointer-events: none;
+  transform-origin: left center;
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+}
+
+.field__input:focus + .field__label,
+.field__input:not(:placeholder-shown) + .field__label,
+.field__input:-webkit-autofill + .field__label {
+  color: var(--color-text-accent);
+  transform: translateY(-0.7rem) scale(0.78);
+}
+
+.field__input[aria-invalid='true'] + .field__label {
+  color: var(--color-text-danger);
+}
+
+.field__icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-4);
+  color: var(--color-text-subtle);
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: color var(--duration-base) var(--ease-out);
+}
+
+.field__input:focus ~ .field__icon {
+  color: var(--color-violet-light);
+}
+
+/* Show / hide password */
+.field__toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-subtle);
+  transform: translateY(-50%);
+  transition:
+    color var(--duration-fast),
+    background-color var(--duration-fast);
+}
+
+.field__toggle:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.field__toggle:focus-visible {
+  outline-offset: 0;
+}
+
+.field__toggle .icon--hide,
+.field__toggle[aria-pressed='true'] .icon--show {
+  display: none;
+}
+
+.field__toggle[aria-pressed='true'] .icon--hide {
+  display: block;
+}
+
+.field__error,
+.field__caps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-1) 0;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.field__error {
+  color: var(--color-text-danger);
+  animation: fade-up 0.25s var(--ease-out);
+}
+
+.field__caps {
+  color: var(--color-text-warning);
+}
+
+.field__caps::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-amber);
+  box-shadow: 0 0 8px var(--color-amber);
+}
+
+.field__error:empty,
+.field__caps:empty {
+  display: none;
+}
+
+/* ---------- Password strength meter ---------- */
+
+.strength {
+  --strength-color: var(--strength-0);
+
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-1) 0;
+  animation: fade-up 0.3s var(--ease-out);
+}
+
+.strength[data-score='1'] {
+  --strength-color: var(--strength-1);
+}
+
+.strength[data-score='2'] {
+  --strength-color: var(--strength-2);
+}
+
+.strength[data-score='3'] {
+  --strength-color: var(--strength-3);
+}
+
+.strength[data-score='4'] {
+  --strength-color: var(--strength-4);
+}
+
+.strength__bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.strength__segment {
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: rgb(255 255 255 / 10%);
+  transition:
+    background-color var(--duration-slow) var(--ease-out),
+    box-shadow var(--duration-slow) var(--ease-out);
+}
+
+/* Score 0 lights one segment so "very weak" is still visibly red. */
+.strength__segment:first-child,
+.strength[data-score='2'] .strength__segment:nth-child(-n + 2),
+.strength[data-score='3'] .strength__segment:nth-child(-n + 3),
+.strength[data-score='4'] .strength__segment {
+  background: var(--strength-color);
+  box-shadow: 0 0 10px -1px var(--strength-color);
+}
+
+.strength__text {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+}
+
+.strength__label {
+  color: var(--strength-color);
+  font-weight: 600;
+}
+
+/* ---------- Checkbox ---------- */
+
+.field--checkbox {
+  gap: 0;
+}
+
+.checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: 1.5rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox__input {
+  position: absolute;
+  top: 0.125rem;
+  left: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkbox__box {
+  display: grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0.375rem;
+  background: var(--color-surface);
+  transition:
+    background-color var(--duration-fast),
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast);
+}
+
+.checkbox__box .icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  stroke: #fff;
+  stroke-width: 3;
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity var(--duration-fast),
+    transform var(--duration-base) var(--ease-spring);
+}
+
+.checkbox:hover .checkbox__box {
+  border-color: rgb(157 134 255 / 80%);
+}
+
+.checkbox__input:checked + .checkbox__box {
+  border-color: transparent;
+  background: var(--gradient-primary);
+  box-shadow: 0 0 12px -2px rgb(123 92 255 / 70%);
+}
+
+.checkbox__input:checked + .checkbox__box .icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.checkbox__input:focus-visible + .checkbox__box {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.checkbox__input[aria-invalid='true'] + .checkbox__box {
+  border-color: var(--color-danger);
+}
+
+/* ---------- Divider ---------- */
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 18%));
+}
+
+.divider::after {
+  background: linear-gradient(270deg, transparent, rgb(255 255 255 / 18%));
+}

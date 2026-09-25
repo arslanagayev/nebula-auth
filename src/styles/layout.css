@@ -1,0 +1,152 @@
+/* ---------- Backdrop: WebGL canvas with an animated CSS fallback underneath ---------- */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--color-space);
+  pointer-events: none;
+}
+
+/*
+ * Painted immediately and kept as the fallback when WebGL is unavailable. Once the scene has
+ * rendered its first frame the canvas fades in on top and this layer is hidden.
+ */
+.backdrop__fallback {
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(38% 32% at 32% 38%, rgb(123 92 255 / 42%), transparent 70%),
+    radial-gradient(30% 28% at 68% 62%, rgb(0 229 255 / 24%), transparent 70%),
+    radial-gradient(26% 24% at 58% 30%, rgb(255 94 203 / 26%), transparent 70%),
+    radial-gradient(22% 18% at 50% 50%, rgb(255 190 120 / 22%), transparent 70%),
+    radial-gradient(70% 60% at 50% 50%, rgb(40 24 110 / 45%), transparent 75%);
+  animation: nebula-drift 28s var(--ease-in-out) infinite alternate;
+  transition:
+    opacity 1.2s var(--ease-out),
+    visibility 0s linear 1.2s;
+}
+
+/* A sparse, static star field made from tiny gradients: no image request needed. */
+.backdrop__fallback::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgb(255 255 255 / 80%), transparent),
+    radial-gradient(1px 1px at 27% 72%, rgb(255 255 255 / 60%), transparent),
+    radial-gradient(1.5px 1.5px at 44% 12%, rgb(201 191 255 / 90%), transparent),
+    radial-gradient(1px 1px at 63% 84%, rgb(255 255 255 / 70%), transparent),
+    radial-gradient(1.5px 1.5px at 78% 26%, rgb(160 240 255 / 80%), transparent),
+    radial-gradient(1px 1px at 88% 58%, rgb(255 255 255 / 60%), transparent),
+    radial-gradient(1px 1px at 8% 90%, rgb(255 200 240 / 70%), transparent);
+  background-size: 480px 480px;
+  opacity: 0.8;
+}
+
+.backdrop__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 1.4s var(--ease-out);
+}
+
+.scene-ready .backdrop__canvas {
+  opacity: 1;
+}
+
+.scene-ready .backdrop__fallback {
+  opacity: 0;
+  visibility: hidden;
+  animation-play-state: paused;
+}
+
+/* Darkens the edges so the card and footer text always sit on a calm background. */
+.backdrop__vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 45%, transparent 45%, rgb(5 6 15 / 70%) 100%),
+    linear-gradient(to bottom, rgb(5 6 15 / 0%) 70%, rgb(5 6 15 / 55%) 100%);
+}
+
+/* ---------- Page shell ---------- */
+
+.shell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.25rem, 3vh, 2rem);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: max(clamp(1.5rem, 5vh, 3rem), env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right))
+    max(clamp(1.5rem, 4vh, 2.5rem), env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+}
+
+.auth {
+  width: min(100%, var(--card-width));
+}
+
+/* ---------- Brand ---------- */
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  animation: fade-up 0.8s var(--ease-out) 0.05s backwards;
+}
+
+.brand__mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  filter: drop-shadow(0 0 12px rgb(123 92 255 / 55%));
+}
+
+.brand__name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  background: linear-gradient(100deg, #fff 30%, var(--color-violet-light) 70%, #9ef4ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Footer ---------- */
+
+.footer {
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+  text-align: center;
+  animation: fade-up 0.8s var(--ease-out) 0.35s backwards;
+}
+
+.footer__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: 24px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--duration-fast);
+}
+
+.footer__link:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+.footer__link .icon {
+  width: 1em;
+  height: 1em;
+}

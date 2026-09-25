@@ -1,0 +1,187 @@
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 3.25rem;
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    background-position 0.8s var(--ease-out);
+}
+
+.button:active:not([aria-disabled='true']) {
+  transform: translateY(1px) scale(0.99);
+}
+
+/* ---------- Primary: gradient with a periodic shimmer ---------- */
+
+.button--primary {
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  margin-top: var(--space-1);
+  background: var(--gradient-primary);
+  background-size: 180% 100%;
+  background-position: 0% 50%;
+  box-shadow: var(--shadow-button);
+  color: #fff;
+}
+
+.button--primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgb(255 255 255 / 28%) 48%,
+    rgb(255 255 255 / 8%) 55%,
+    transparent 70%
+  );
+  transform: translateX(-120%);
+  animation: shimmer 5s var(--ease-in-out) 2s infinite;
+}
+
+.button--primary:hover {
+  background-position: 100% 50%;
+  box-shadow:
+    0 14px 32px -10px rgb(162 59 196 / 80%),
+    inset 0 1px 0 rgb(255 255 255 / 30%);
+}
+
+.button--primary:focus-visible {
+  outline-offset: 3px;
+}
+
+.button__icon {
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.button--primary:hover .button__icon {
+  transform: translateX(3px);
+}
+
+/* Loading state: spinner in, arrow out. The label text is swapped from TypeScript. */
+.button__spinner {
+  display: none;
+  width: 1.1em;
+  height: 1.1em;
+  border: 2px solid rgb(255 255 255 / 35%);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.button[aria-busy='true'] {
+  cursor: progress;
+}
+
+/* Blocked (e.g. lockout countdown) but still focusable and announced. */
+.button--primary[aria-disabled='true']:not([aria-busy='true']) {
+  background: linear-gradient(120deg, #3f3a6e, #4a3b72);
+  box-shadow: none;
+  color: #e4e1ff;
+  cursor: not-allowed;
+}
+
+.button--primary[aria-disabled='true']:not([aria-busy='true'])::before {
+  animation: none;
+}
+
+.button[aria-busy='true'] .button__spinner {
+  display: inline-block;
+}
+
+.button[aria-busy='true'] .button__icon {
+  display: none;
+}
+
+.button[aria-busy='true']::before {
+  animation-duration: 1.4s;
+  animation-delay: 0s;
+}
+
+/* ---------- Secondary & social ---------- */
+
+.button--secondary,
+.button--social {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.button--secondary:hover,
+.button--social:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-hover);
+}
+
+.button--secondary {
+  min-width: 12rem;
+}
+
+.button--social {
+  min-height: 3rem;
+  font-weight: 500;
+}
+
+.button--social .icon--brand {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.social {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+@media (max-width: 339px) {
+  .social {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Text links rendered as buttons ---------- */
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0.125rem 0.25rem;
+  margin: -0.125rem -0.25rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  text-decoration: underline;
+  text-decoration-color: rgb(170 177 214 / 40%);
+  text-underline-offset: 0.25em;
+  transition:
+    color var(--duration-fast),
+    text-decoration-color var(--duration-fast);
+}
+
+.link:hover {
+  color: var(--color-text);
+  text-decoration-color: currentcolor;
+}
+
+.link--accent {
+  color: var(--color-violet-light);
+  font-weight: 600;
+  text-decoration-color: rgb(183 166 255 / 40%);
+}
