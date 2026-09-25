@@ -13,8 +13,19 @@
     "glassmorphism",
     "accessibility"
   ],
-  "author": "Arslan Agayev",
+  "author": {
+    "name": "Arslan Agayev",
+    "url": "https://github.com/arslanagayev"
+  },
   "license": "MIT",
+  "homepage": "https://arslanagayev.github.io/nebula-auth/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arslanagayev/nebula-auth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/arslanagayev/nebula-auth/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=22.12.0"

@@ -4,15 +4,15 @@
 
 **An interactive 3D login and sign-up experience: frosted-glass forms floating in front of a real-time WebGL galaxy that reacts to everything you type.**
 
-[![CI](https://github.com/{{GITHUB_USER}}/nebula-auth/actions/workflows/ci.yml/badge.svg)](https://github.com/{{GITHUB_USER}}/nebula-auth/actions/workflows/ci.yml)
-[![Deploy](https://github.com/{{GITHUB_USER}}/nebula-auth/actions/workflows/deploy.yml/badge.svg)](https://github.com/{{GITHUB_USER}}/nebula-auth/actions/workflows/deploy.yml)
+[![CI](https://github.com/arslanagayev/nebula-auth/actions/workflows/ci.yml/badge.svg)](https://github.com/arslanagayev/nebula-auth/actions/workflows/ci.yml)
+[![Deploy](https://github.com/arslanagayev/nebula-auth/actions/workflows/deploy.yml/badge.svg)](https://github.com/arslanagayev/nebula-auth/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-7b5cff.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](tsconfig.app.json)
 [![three.js](https://img.shields.io/badge/three.js-r186-000000?logo=threedotjs&logoColor=white)](https://threejs.org)
 
 ![Nebula Auth: glass sign-in card in front of a glowing spiral galaxy](docs/preview.png)
 
-### [Live demo](https://{{GITHUB_USER}}.github.io/nebula-auth/)
+### [Live demo](https://arslanagayev.github.io/nebula-auth/)
 
 </div>
 
@@ -67,7 +67,7 @@ No UI framework on purpose: the project shows what the platform can do with well
 Requires **Node.js 22.12+** (the repository pins Node 24 in `.nvmrc`).
 
 ```bash
-git clone https://github.com/{{GITHUB_USER}}/nebula-auth.git
+git clone https://github.com/arslanagayev/nebula-auth.git
 cd nebula-auth
 npm ci
 npm run dev
@@ -175,6 +175,13 @@ npm run test:coverage  # enforces ≥ 90% line coverage for src/lib and src/core
 - [ ] Breached-password check using the Have I Been Pwned k-anonymity API
 - [ ] A WebGPU renderer path with TSL shaders, falling back to WebGL 2
 - [ ] Localised validation messages and right-to-left layout support
+
+## Author
+
+**Arslan Agayev**, computer science student building interactive web experiences.
+
+- GitHub: [@arslanagayev](https://github.com/arslanagayev)
+- Instagram: [@arslanagayev.dev](https://www.instagram.com/arslanagayev.dev/)
 
 ## License
 

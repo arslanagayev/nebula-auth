@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import html from '../index.html?raw';
+import readme from '../README.md?raw';
+import pkg from '../package.json';
 
 /*
  * Static checks on the shipped markup. They catch the accessibility regressions that are easy
@@ -9,6 +11,11 @@ import html from '../index.html?raw';
  */
 
 const doc = new DOMParser().parseFromString(html, 'text/html');
+
+const REPOSITORY = 'https://github.com/arslanagayev/nebula-auth';
+const LIVE_DEMO = 'https://arslanagayev.github.io/nebula-auth/';
+/** `{{ TOKEN }}` style placeholders. GitHub Actions' `${{ … }}` expressions never ship here. */
+const TEMPLATE_TOKEN = /(?<!\$)\{\{\s*[\w.-]+\s*\}\}/u;
 
 const all = (selector: string): Element[] => [...doc.querySelectorAll(selector)];
 
@@ -97,5 +104,28 @@ describe('index.html', () => {
       (svg) => svg.closest('[aria-hidden="true"]') === null && svg.getAttribute('role') !== 'img',
     );
     expect(exposed.map(describeElement)).toEqual([]);
+  });
+});
+
+describe('published links', () => {
+  it('ships no unresolved template tokens', () => {
+    expect(html).not.toMatch(TEMPLATE_TOKEN);
+    expect(readme).not.toMatch(TEMPLATE_TOKEN);
+  });
+
+  it('points the footer, canonical URL and package metadata at the real repository', () => {
+    expect(doc.querySelector('.footer__link')?.getAttribute('href')).toBe(REPOSITORY);
+    expect(doc.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(LIVE_DEMO);
+    expect(doc.querySelector('meta[property="og:url"]')?.getAttribute('content')).toBe(LIVE_DEMO);
+    expect(pkg.homepage).toBe(LIVE_DEMO);
+    expect(pkg.repository.url).toBe(`git+${REPOSITORY}.git`);
+    expect(pkg.bugs.url).toBe(`${REPOSITORY}/issues`);
+  });
+
+  it('links the README badges and demo to the real repository', () => {
+    expect(readme).toContain(`${REPOSITORY}/actions/workflows/ci.yml/badge.svg`);
+    expect(readme).toContain(`${REPOSITORY}/actions/workflows/deploy.yml/badge.svg`);
+    expect(readme).toContain(`[Live demo](${LIVE_DEMO})`);
+    expect(readme).toContain(`git clone ${REPOSITORY}.git`);
   });
 });
