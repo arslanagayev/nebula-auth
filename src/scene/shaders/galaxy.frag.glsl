@@ -7,11 +7,11 @@ uniform float uBurst;      // 0..1, decaying success burst
 varying vec3 vColor;
 
 void main() {
-  // Round, soft point: distance from the sprite centre, eased so the core is bright and
-  // the edge fades to nothing (no hard disc outline, no texture lookup).
+  // Round, soft point: distance from the sprite centre, eased so the core is bright and the
+  // edge fades to nothing (no hard disc outline, no texture lookup). No `discard`: with
+  // additive blending a zero alpha adds nothing, and tile-based mobile GPUs stay fast.
   float d = length(gl_PointCoord - 0.5);
-  if (d > 0.5) discard;
-  float glow = pow(1.0 - d * 2.0, 2.4);
+  float glow = pow(max(0.0, 1.0 - d * 2.0), 2.4);
 
   vec3 color = mix(vColor, uFlashColor, uFlash * 0.7);
   color = mix(color, uBurstColor, uBurst * 0.6);

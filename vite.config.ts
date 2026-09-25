@@ -19,15 +19,28 @@ export default defineConfig(({ mode }) => ({
     include: ['tests/**/*.test.ts'],
     environment: 'node',
     restoreMocks: true,
+    // Vitest stubs stylesheets by default; the palette test reads the design tokens.
+    css: { include: [/tokens\.css/u] },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      // The WebGL layer needs a real GPU context; it is exercised manually in the browser.
-      exclude: ['src/main.ts', 'src/scene/**'],
+      // Rendering code needs a real GPU context and is exercised in the browser. The scene's
+      // behaviour lives in lib/sceneMotion.ts, and its pure helpers are covered below.
+      exclude: [
+        'src/main.ts',
+        'src/scene/NebulaScene.ts',
+        'src/scene/core.ts',
+        'src/scene/galaxy.ts',
+        'src/scene/postprocessing.ts',
+        'src/scene/starfield.ts',
+        'src/scene/textures.ts',
+      ],
       reporter: ['text', 'html', 'lcov'],
       thresholds: {
         'src/lib/**': { lines: 90, statements: 90, functions: 90, branches: 85 },
         'src/core/**': { lines: 90, statements: 90, functions: 90, branches: 85 },
+        'src/ui/**': { lines: 90, statements: 90, functions: 90, branches: 75 },
+        'src/scene/**': { lines: 90, statements: 90, functions: 90, branches: 85 },
       },
     },
   },

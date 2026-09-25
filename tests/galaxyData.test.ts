@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../src/lib/random';
-import { DEFAULT_GALAXY, generateGalaxy } from '../src/scene/galaxyData';
+import { CENTRE_BOOST, DEFAULT_GALAXY, generateGalaxy } from '../src/scene/galaxyData';
 
 const params = { ...DEFAULT_GALAXY, count: 2_000 };
 
@@ -44,7 +44,22 @@ describe('generateGalaxy', () => {
 
   it('produces valid colours and point scales', () => {
     const { colors, scales } = generateGalaxy(params, mulberry32(5));
-    expect(colors.every((channel) => channel >= 0 && channel <= 1.0001)).toBe(true);
-    expect(scales.every((scale) => scale > 0 && scale < 3)).toBe(true);
+    expect(colors.every((channel) => channel >= 0 && channel <= CENTRE_BOOST + 1e-4)).toBe(true);
+    expect(scales.every((scale) => scale > 0 && scale <= 1.8)).toBe(true);
+  });
+
+  it('lets only the very centre exceed 1.0, so it is what the bloom pass picks up', () => {
+    const { positions, colors } = generateGalaxy(params, mulberry32(11));
+    for (let i = 0; i < params.count; i += 1) {
+      const radius = Math.hypot(positions[i * 3] ?? 0, positions[i * 3 + 2] ?? 0);
+      const peak = Math.max(colors[i * 3] ?? 0, colors[i * 3 + 1] ?? 0, colors[i * 3 + 2] ?? 0);
+      if (peak > 1) expect(radius / params.radius).toBeLessThan(0.09);
+    }
+  });
+
+  it('keeps large foreground stars rare', () => {
+    const { scales } = generateGalaxy({ ...params, count: 20_000 }, mulberry32(4));
+    const big = scales.filter((scale) => scale > 1.2).length;
+    expect(big / scales.length).toBeLessThan(0.01);
   });
 });
