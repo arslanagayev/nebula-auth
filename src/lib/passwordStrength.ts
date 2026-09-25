@@ -1,6 +1,7 @@
+import type { StrengthScore } from '../core/types';
 import { COMMON_PASSWORDS } from './commonPasswords';
 
-export type StrengthScore = 0 | 1 | 2 | 3 | 4;
+export type { StrengthScore } from '../core/types';
 
 export const STRENGTH_LABELS = ['Very weak', 'Weak', 'Fair', 'Strong', 'Excellent'] as const;
 

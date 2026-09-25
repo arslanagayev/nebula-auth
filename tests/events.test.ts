@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAppBus } from '../src/core/appEvents';
+import { APP_STATE_EVENTS, createAppBus } from '../src/core/appEvents';
 import { EventBus } from '../src/core/events';
 
 interface TestEvents {
   ping: { count: number };
   name: string;
 }
+
+/** `name` is a state event (remembered, replayable); `ping` is transient. */
+const createBus = () => new EventBus<TestEvents, 'name'>({ state: ['name'] });
 
 describe('EventBus', () => {
   it('delivers typed payloads to every subscriber', () => {
@@ -72,6 +75,32 @@ describe('EventBus', () => {
     expect(bus.listenerCount('name')).toBe(0);
   });
 
+  it('treats every on() call as its own subscription', () => {
+    const bus = new EventBus<TestEvents>();
+    const handler = vi.fn();
+    const unsubscribeFirst = bus.on('ping', handler);
+    bus.on('ping', handler);
+
+    unsubscribeFirst();
+    bus.emit('ping', { count: 1 });
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    // off() removes every subscription of that handler.
+    bus.off('ping', handler);
+    expect(bus.listenerCount('ping')).toBe(0);
+  });
+
+  it('stops listening to the signal after a manual unsubscribe', () => {
+    const bus = new EventBus<TestEvents>();
+    const controller = new AbortController();
+    const removeListener = vi.spyOn(controller.signal, 'removeEventListener');
+
+    const unsubscribe = bus.on('ping', vi.fn(), { signal: controller.signal });
+    unsubscribe();
+
+    expect(removeListener).toHaveBeenCalledWith('abort', expect.any(Function));
+  });
+
   it('calls once() handlers a single time', () => {
     const bus = new EventBus<TestEvents>();
     const handler = vi.fn();
@@ -84,8 +113,20 @@ describe('EventBus', () => {
     expect(handler).toHaveBeenCalledWith({ count: 1 });
   });
 
-  it('remembers the latest payload and can replay it to late subscribers', () => {
+  it('supports an AbortSignal for once() subscriptions', () => {
     const bus = new EventBus<TestEvents>();
+    const controller = new AbortController();
+    const handler = vi.fn();
+    bus.once('ping', handler, { signal: controller.signal });
+
+    controller.abort();
+    bus.emit('ping', { count: 1 });
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('remembers the latest payload of state events and replays it to late subscribers', () => {
+    const bus = createBus();
     expect(bus.latest('name')).toBeUndefined();
 
     bus.emit('name', 'first');
@@ -100,8 +141,19 @@ describe('EventBus', () => {
     expect(notReplayed).not.toHaveBeenCalled();
   });
 
+  it('forgets transient events once they are delivered', () => {
+    const bus = createBus();
+    bus.emit('ping', { count: 1 });
+    const handler = vi.fn();
+    // @ts-expect-error `replay` is only available for state events.
+    bus.on('ping', handler, { replay: true });
+    // @ts-expect-error `latest()` is only available for state events.
+    expect(bus.latest('ping')).toBeUndefined();
+    expect(handler).not.toHaveBeenCalled();
+  });
+
   it('does not replay when nothing has been emitted yet', () => {
-    const bus = new EventBus<TestEvents>();
+    const bus = createBus();
     const handler = vi.fn();
     bus.on('name', handler, { replay: true });
     expect(handler).not.toHaveBeenCalled();
@@ -156,7 +208,7 @@ describe('EventBus', () => {
   });
 
   it('clear() drops subscribers and remembered payloads', () => {
-    const bus = new EventBus<TestEvents>();
+    const bus = createBus();
     const handler = vi.fn();
     bus.on('name', handler);
     bus.emit('name', 'before');
@@ -181,5 +233,13 @@ describe('createAppBus', () => {
     first.emit('view:flip', { view: 'sign-in' });
 
     expect(handler).toHaveBeenCalledExactlyOnceWith({ view: 'sign-in' });
+  });
+
+  it('remembers exactly the state events of the contract', () => {
+    const bus = createAppBus();
+    bus.emit('layout:card', { left: 1, top: 2, width: 3, height: 4 });
+    bus.emit('password:strength', { score: 3 });
+    bus.emit('scene:status', { status: 'ready' });
+    for (const type of APP_STATE_EVENTS) expect(bus.latest(type)).toBeDefined();
   });
 });

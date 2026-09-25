@@ -1,4 +1,5 @@
-import { evaluatePasswordStrength, type StrengthScore } from './passwordStrength';
+import type { StrengthScore } from '../core/types';
+import { evaluatePasswordStrength } from './passwordStrength';
 
 /** A human-readable error message, or `null` when the value is valid. */
 export type FieldError = string | null;

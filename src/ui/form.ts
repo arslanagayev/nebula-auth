@@ -1,4 +1,5 @@
 import type { AppBus, AuthView } from '../core/appEvents';
+import { isTextFieldName } from '../core/types';
 import type { FieldError } from '../lib/validation';
 
 export type FieldValidator = (input: HTMLInputElement, controller: FormController) => FieldError;
@@ -94,7 +95,7 @@ export class FormController {
         const name = this.#nameOf(event.target);
         const field = name === null ? undefined : this.#fields.get(name);
         if (!field || name === null) return;
-        if (isTextInput(field.input)) this.#bus.emit('field:blur', { view, field: name });
+        if (isTextFieldName(name)) this.#bus.emit('field:blur', { view, field: name });
         // Leaving an untouched, empty field is not an error yet: the user may be tabbing past.
         if (field.input.value !== '' || field.touched) {
           field.touched = true;
@@ -108,8 +109,7 @@ export class FormController {
       'focusin',
       (event) => {
         const name = this.#nameOf(event.target);
-        const field = name === null ? undefined : this.#fields.get(name);
-        if (field && name !== null && isTextInput(field.input)) {
+        if (name !== null && isTextFieldName(name)) {
           this.#bus.emit('field:focus', { view, field: name });
         }
       },

@@ -1,8 +1,7 @@
-import type { AuthErrorCode } from '../lib/authService';
-import type { StrengthScore } from '../lib/passwordStrength';
 import { EventBus } from './events';
+import type { AuthErrorCode, AuthView, StrengthScore, TextFieldName } from './types';
 
-export type AuthView = 'sign-in' | 'register';
+export type { AuthErrorCode, AuthView, StrengthScore, TextFieldName } from './types';
 
 export interface CardRect {
   readonly left: number;
@@ -11,32 +10,41 @@ export interface CardRect {
   readonly height: number;
 }
 
+/** Why a submission failed: an {@link AuthErrorCode}, invalid fields, or an unexpected throw. */
+export type AuthFailure = AuthErrorCode | 'invalid-form' | 'unexpected';
+
 /**
  * Every message exchanged between the UI and the 3D scene. The payload types are the
  * contract: the UI never calls into the scene directly and vice versa.
  */
 export interface AppEvents {
-  /** A form control received focus. */
-  'field:focus': { readonly view: AuthView; readonly field: string };
-  /** A form control lost focus. */
-  'field:blur': { readonly view: AuthView; readonly field: string };
+  /** A text field received focus. */
+  'field:focus': { readonly view: AuthView; readonly field: TextFieldName };
+  /** A text field lost focus. */
+  'field:blur': { readonly view: AuthView; readonly field: TextFieldName };
   /** Strength of the new password being typed; `null` when the field is empty or hidden. */
   'password:strength': { readonly score: StrengthScore | null };
   /** A request was sent to the auth service. */
   'auth:pending': { readonly view: AuthView };
   'auth:success': { readonly view: AuthView; readonly name: string };
-  /** The request failed, or the form was submitted with invalid fields (`invalid-form`). */
-  'auth:error': { readonly view: AuthView; readonly code: AuthErrorCode | 'invalid-form' };
+  /** The request failed, the form had invalid fields, or the auth call threw. */
+  'auth:error': { readonly view: AuthView; readonly code: AuthFailure };
   /** The user left the success screen and is back at an empty form. */
   'auth:reset': { readonly view: AuthView };
   /** The card started flipping to show `view`. */
   'view:flip': { readonly view: AuthView };
-  /** The card moved or resized, in viewport pixels. The scene anchors the glass core to it. */
+  /** The card's anchor moved or resized, in viewport pixels. The scene pins the core to it. */
   'layout:card': CardRect;
   /** Lifecycle of the WebGL layer. */
   'scene:status': { readonly status: 'ready' | 'unavailable' | 'lost' };
 }
 
-export type AppBus = EventBus<AppEvents>;
+/** Events that describe current state: remembered by the bus and replayable. */
+export const APP_STATE_EVENTS = ['layout:card', 'password:strength', 'scene:status'] as const;
 
-export const createAppBus = (): AppBus => new EventBus<AppEvents>();
+export type AppStateEvent = (typeof APP_STATE_EVENTS)[number];
+
+export type AppBus = EventBus<AppEvents, AppStateEvent>;
+
+export const createAppBus = (): AppBus =>
+  new EventBus<AppEvents, AppStateEvent>({ state: APP_STATE_EVENTS });

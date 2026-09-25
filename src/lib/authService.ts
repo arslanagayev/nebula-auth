@@ -1,3 +1,4 @@
+import type { AuthErrorCode } from '../core/types';
 import { err, ok, type Result } from './result';
 import {
   normalizeEmail,
@@ -27,8 +28,7 @@ export interface SignInInput {
   readonly remember?: boolean;
 }
 
-export type AuthErrorCode =
-  'invalid-credentials' | 'rate-limited' | 'email-taken' | 'invalid-input';
+export type { AuthErrorCode } from '../core/types';
 
 export interface AuthError {
   readonly code: AuthErrorCode;
