@@ -320,10 +320,13 @@ transmission, which costs no extra render pass.
 - **Targets and focus**: 44 px touch targets on coarse pointers, visible focus rings (red for
   invalid fields) and outlines that forced-colors mode can paint.
 - **Glass and contrast**: text colours are chosen against the composited glass, a 58 % dark
-  fill over a 28 px blur. Body and secondary text stay above 4.5:1 over the brightest arm, the
-  galaxy's centre is kept out from behind the card, and header and footer text carry a soft
-  shadow where the glowing core passes behind them. The primary gradient stops keep white
-  button text above 4.5:1.
+  fill over a 28 px blur. The galaxy's centre is kept out from behind the card, and header and
+  footer text carry a soft shadow where the glowing core passes behind them. The worst case was
+  measured in the running app by reading the rendered canvas behind the text and compositing
+  it through the glass (blur, saturation, fill and highlight): at the brightest moments (the
+  pending swirl, the red error flash and the success burst, at 1024×768 and 375×812) the
+  secondary text colour stays above 5.7:1 and headings above 9:1 wherever text is visible. The
+  primary gradient stops keep white button text above 4.5:1.
 - **Motion**: `prefers-reduced-motion` disables tilt, parallax, shake, shimmer and drift, and the
   scene renders static frames. Changes to the preference are picked up live.
 
