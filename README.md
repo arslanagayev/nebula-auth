@@ -64,7 +64,7 @@ No UI framework on purpose: the project shows what the platform can do with well
 
 ## Getting started
 
-Requires **Node.js 22.12+** (the repository pins Node 24 in `.nvmrc`).
+Requires **Node.js 22.13+** (22 LTS or 24 LTS; the repository pins 24 in `.nvmrc`).
 
 ```bash
 git clone https://github.com/arslanagayev/nebula-auth.git
