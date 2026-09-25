@@ -58,7 +58,9 @@ export function validateName(value: string): FieldError {
   if (name === '') return 'Enter your name.';
   if (name.length < NAME_MIN_LENGTH) return `Use at least ${NAME_MIN_LENGTH} characters.`;
   if (name.length > NAME_MAX_LENGTH) return `Use ${NAME_MAX_LENGTH} characters or fewer.`;
-  if (!NAME_PATTERN.test(name)) return 'Use letters, spaces, hyphens or apostrophes only.';
+  if (!NAME_PATTERN.test(name)) {
+    return 'Use letters, spaces, periods, hyphens or apostrophes only.';
+  }
   return null;
 }
 
@@ -76,12 +78,16 @@ export interface PasswordContext {
  * Rules for a new password, following NIST SP 800-63B: a minimum length, a generous maximum,
  * and a check against common and easily guessed passwords instead of arbitrary composition
  * rules. The strength meter nudges users towards stronger choices.
+ *
+ * Length is counted in Unicode code points, as NIST recommends and as the strength meter does,
+ * so an emoji counts as one character rather than two UTF-16 units.
  */
 export function validateNewPassword(value: string, context: PasswordContext = {}): FieldError {
   if (value === '') return 'Create a password.';
   if (value.trim() === '') return 'Your password can’t be only spaces.';
-  if (value.length < PASSWORD_MIN_LENGTH) return `Use at least ${PASSWORD_MIN_LENGTH} characters.`;
-  if (value.length > PASSWORD_MAX_LENGTH) return `Use ${PASSWORD_MAX_LENGTH} characters or fewer.`;
+  const length = Array.from(value).length;
+  if (length < PASSWORD_MIN_LENGTH) return `Use at least ${PASSWORD_MIN_LENGTH} characters.`;
+  if (length > PASSWORD_MAX_LENGTH) return `Use ${PASSWORD_MAX_LENGTH} characters or fewer.`;
 
   const personal = [context.name, context.email].filter(
     (input): input is string => input !== undefined && input !== '',

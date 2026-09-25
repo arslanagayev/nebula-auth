@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Nebula — Sign in</title>
+    <title>Sign in — Nebula</title>
     <meta
       name="description"
       content="An interactive 3D login and sign-up experience built with Three.js, TypeScript and modern CSS."
     />
     <meta name="theme-color" content="#05060f" />
     <meta name="color-scheme" content="dark" />
-    <meta property="og:title" content="Nebula — Sign in" />
+    <meta property="og:title" content="Nebula Auth — an interactive 3D sign-in experience" />
     <meta
       property="og:description"
       content="A glassmorphism login and sign-up UI floating in front of a real-time WebGL galaxy."
@@ -20,6 +20,21 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="canonical" href="https://arslanagayev.github.io/nebula-auth/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- The latin subsets the first paint needs; Vite fingerprints these and the CSS copies alike. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2"
+    />
   </head>
   <body>
     <svg class="sprite" aria-hidden="true" focusable="false">
@@ -143,22 +158,32 @@
           <div class="card" data-card data-view="sign-in">
             <!-- Front face: sign in -->
             <section class="face face--front" data-face="sign-in" aria-labelledby="sign-in-title">
-              <div class="face__glare" aria-hidden="true"></div>
+              <div class="face__glare" aria-hidden="true" data-glare></div>
 
               <div class="face__panel" data-panel="form">
                 <header class="face__header">
-                  <h1 class="face__title" id="sign-in-title">Welcome back</h1>
+                  <h1 class="face__title" id="sign-in-title" tabindex="-1" data-face-title>
+                    Welcome back
+                  </h1>
                   <p class="face__subtitle">Sign in to continue your journey through the stars.</p>
                 </header>
 
-                <button type="button" class="demo-pill" data-fill-demo>
+                <button
+                  type="button"
+                  class="demo-pill"
+                  data-fill-demo
+                  aria-label="Autofill the demo account: demo@nebula.dev, password Nebula#2026"
+                >
                   <span class="demo-pill__badge">Demo</span>
-                  <span class="demo-pill__credentials">demo@nebula.dev · Nebula#2026</span>
+                  <span class="demo-pill__credentials">
+                    <span>demo@nebula.dev</span>
+                    <span>Nebula#2026</span>
+                  </span>
                   <span class="demo-pill__action">Autofill</span>
                 </button>
 
                 <form class="form" data-form="sign-in" novalidate>
-                  <p class="form__status" role="alert" data-form-status></p>
+                  <p class="form__status" id="sign-in-status" role="alert" data-form-status></p>
 
                   <div class="field" data-field="email">
                     <div class="field__control">
@@ -193,7 +218,7 @@
                         autocomplete="current-password"
                         placeholder=" "
                         required
-                        aria-describedby="sign-in-password-error sign-in-password-caps"
+                        aria-describedby="sign-in-status sign-in-password-error sign-in-password-caps"
                       />
                       <label class="field__label" for="sign-in-password">Password</label>
                       <svg class="icon field__icon" aria-hidden="true">
@@ -247,13 +272,23 @@
                 <p class="divider"><span>or continue with</span></p>
 
                 <div class="social">
-                  <button type="button" class="button button--social" data-provider="GitHub">
+                  <button
+                    type="button"
+                    class="button button--social"
+                    data-provider="GitHub"
+                    aria-label="Continue with GitHub"
+                  >
                     <svg class="icon icon--brand" aria-hidden="true">
                       <use href="#icon-github" />
                     </svg>
                     <span>GitHub</span>
                   </button>
-                  <button type="button" class="button button--social" data-provider="Google">
+                  <button
+                    type="button"
+                    class="button button--social"
+                    data-provider="Google"
+                    aria-label="Continue with Google"
+                  >
                     <svg class="icon icon--brand" aria-hidden="true">
                       <use href="#icon-google" />
                     </svg>
@@ -292,18 +327,20 @@
               aria-labelledby="register-title"
               inert
             >
-              <div class="face__glare" aria-hidden="true"></div>
+              <div class="face__glare" aria-hidden="true" data-glare></div>
 
               <div class="face__panel" data-panel="form">
                 <header class="face__header">
-                  <h1 class="face__title" id="register-title">Create your account</h1>
+                  <h1 class="face__title" id="register-title" tabindex="-1" data-face-title>
+                    Create your account
+                  </h1>
                   <p class="face__subtitle">
                     Join Nebula in less than a minute. No credit card required.
                   </p>
                 </header>
 
                 <form class="form" data-form="register" novalidate>
-                  <p class="form__status" role="alert" data-form-status></p>
+                  <p class="form__status" id="register-status" role="alert" data-form-status></p>
 
                   <div class="field" data-field="name">
                     <div class="field__control">
@@ -335,7 +372,7 @@
                         name="email"
                         type="email"
                         inputmode="email"
-                        autocomplete="email"
+                        autocomplete="username"
                         autocapitalize="off"
                         spellcheck="false"
                         placeholder=" "
@@ -383,7 +420,7 @@
                         </svg>
                       </button>
                     </div>
-                    <div class="strength" data-strength data-score="" hidden>
+                    <div class="strength" data-strength data-score="">
                       <div class="strength__bar" aria-hidden="true">
                         <span class="strength__segment"></span>
                         <span class="strength__segment"></span>
@@ -391,9 +428,13 @@
                         <span class="strength__segment"></span>
                       </div>
                       <p class="strength__text" id="register-password-strength">
-                        <span class="visually-hidden">Password strength:</span>
+                        <span class="visually-hidden" data-strength-prefix hidden>
+                          Password strength:
+                        </span>
                         <strong class="strength__label" data-strength-label></strong>
-                        <span class="strength__hint" data-strength-hint></span>
+                        <span class="strength__hint" data-strength-hint>
+                          Use 8 or more characters. A few random words work great.
+                        </span>
                       </p>
                     </div>
                     <p
@@ -415,7 +456,7 @@
                         autocomplete="new-password"
                         placeholder=" "
                         required
-                        aria-describedby="register-confirm-error"
+                        aria-describedby="register-confirm-error register-confirm-caps"
                       />
                       <label class="field__label" for="register-confirm">Confirm password</label>
                       <svg class="icon field__icon" aria-hidden="true">
@@ -437,6 +478,12 @@
                         </svg>
                       </button>
                     </div>
+                    <p
+                      class="field__caps"
+                      id="register-confirm-caps"
+                      aria-live="polite"
+                      data-caps
+                    ></p>
                     <p class="field__error" id="register-confirm-error" data-error></p>
                   </div>
 
@@ -469,13 +516,23 @@
                 <p class="divider"><span>or continue with</span></p>
 
                 <div class="social">
-                  <button type="button" class="button button--social" data-provider="GitHub">
+                  <button
+                    type="button"
+                    class="button button--social"
+                    data-provider="GitHub"
+                    aria-label="Continue with GitHub"
+                  >
                     <svg class="icon icon--brand" aria-hidden="true">
                       <use href="#icon-github" />
                     </svg>
                     <span>GitHub</span>
                   </button>
-                  <button type="button" class="button button--social" data-provider="Google">
+                  <button
+                    type="button"
+                    class="button button--social"
+                    data-provider="Google"
+                    aria-label="Continue with Google"
+                  >
                     <svg class="icon icon--brand" aria-hidden="true">
                       <use href="#icon-google" />
                     </svg>
@@ -520,7 +577,8 @@
       </footer>
     </div>
 
-    <div class="toasts" role="status" aria-live="polite" data-toasts></div>
+    <section class="toasts" aria-label="Notifications" data-toasts></section>
+    <div class="visually-hidden" role="status" aria-live="polite" data-announcer></div>
 
     <noscript>
       <p class="noscript">Nebula needs JavaScript for its interactive sign-in demo.</p>

@@ -1,20 +1,24 @@
 import type { AppBus, AuthView } from '../core/appEvents';
-
-export interface MotionPreference {
-  readonly matches: boolean;
-}
+import { NEVER, wait, type MediaPreference } from './dom';
 
 export interface FlipOptions {
   /** The layout box that holds both faces (`[data-card]`). */
   readonly card: HTMLElement;
   readonly faces: Readonly<Record<AuthView, HTMLElement>>;
   readonly bus: AppBus;
-  readonly reducedMotion: MotionPreference;
+  readonly reducedMotion: MediaPreference;
+  /**
+   * `(pointer: coarse)`. On touch screens focus lands on the new face's heading instead of
+   * its first field, so the on-screen keyboard does not pop up in the middle of the flip.
+   */
+  readonly coarsePointer?: MediaPreference;
   readonly duration?: number;
 }
 
 export interface FlipController {
   readonly view: AuthView;
+  /** True while the card is turning. */
+  readonly flipping: boolean;
   /**
    * Turns the card to `view`. Resolves once the new face is settled and focused.
    * Requests made while a flip is running are ignored.
@@ -25,12 +29,8 @@ export interface FlipController {
 export const FLIP_DURATION_MS = 900;
 const FOCUS_AT = 0.55;
 
-const wait = (ms: number): Promise<void> =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-
 const FIRST_FIELD = 'input:not([type="hidden"]):not([disabled])';
+const HEADING = '[data-face-title]';
 
 /**
  * Flips between the sign-in and create-account faces.
@@ -38,14 +38,20 @@ const FIRST_FIELD = 'input:not([type="hidden"]):not([disabled])';
  * - The hidden face is `inert`, so it is unreachable by keyboard and screen readers.
  * - The layout height animates between the two faces' natural heights (FLIP-style: measure,
  *   pin the old height, then transition to the new one).
- * - Focus moves into the new face half-way through, as soon as it becomes visible.
+ * - Focus stays on the old face until the half-way point, then moves straight into the new
+ *   one as it becomes visible, so it never falls back to `<body>`.
  * - With reduced motion the swap is instant.
+ *
+ * `data-settled` drives the layout (see card.css): `leaving` takes the outgoing face out of
+ * the flow while it turns away, `hidden` also clips it once it is settled out of view, so it
+ * cannot stretch the page's scrollable area.
  */
 export function initFlip({
   card,
   faces,
   bus,
   reducedMotion,
+  coarsePointer = NEVER,
   duration = FLIP_DURATION_MS,
 }: FlipOptions): FlipController {
   let view: AuthView = card.dataset.view === 'register' ? 'register' : 'sign-in';
@@ -64,6 +70,10 @@ export function initFlip({
       return view;
     },
 
+    get flipping() {
+      return flipping;
+    },
+
     async flipTo(next, { focus } = {}) {
       if (next === view || flipping) return;
       flipping = true;
@@ -73,9 +83,8 @@ export function initFlip({
       const instant = reducedMotion.matches;
       const startHeight = card.offsetHeight;
 
-      from.toggleAttribute('inert', true);
       to.toggleAttribute('inert', false);
-      from.dataset.settled = 'hidden';
+      from.dataset.settled = instant ? 'hidden' : 'leaving';
       delete to.dataset.settled;
       const endHeight = card.offsetHeight;
 
@@ -93,11 +102,19 @@ export function initFlip({
       // The incoming face turns visible at the half-way point (see card.css); focusing it
       // any earlier would fail because hidden elements cannot take focus.
       if (!instant) await wait(duration * FOCUS_AT);
-      const target = focus ?? to.querySelector<HTMLElement>(FIRST_FIELD);
+      from.toggleAttribute('inert', true);
+      const target =
+        focus ??
+        (coarsePointer.matches
+          ? to.querySelector<HTMLElement>(HEADING)
+          : to.querySelector<HTMLElement>(FIRST_FIELD));
       target?.focus({ preventScroll: true });
 
       if (!instant) await wait(duration * (1 - FOCUS_AT));
+      from.dataset.settled = 'hidden';
       card.style.removeProperty('height');
+      // Someone who scrolled down to reach the switch link should see where focus went.
+      target?.scrollIntoView({ block: 'nearest' });
       flipping = false;
     },
   };

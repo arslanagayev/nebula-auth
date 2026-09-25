@@ -41,9 +41,18 @@ export interface AuthError {
 
 export type AuthResult = Result<Session, AuthError>;
 
+/**
+ * The seam between the UI and a backend. Expected failures resolve to an `AuthError`;
+ * the promise only rejects for unexpected problems (network, parsing), which the form
+ * controller turns into a generic "something went wrong" message.
+ */
 export interface AuthService {
   signIn(input: SignInInput): Promise<AuthResult>;
   register(input: RegistrationInput): Promise<AuthResult>;
+}
+
+/** The in-memory mock also exposes its rate limiter, for tests and debugging. */
+export interface MockAuthService extends AuthService {
   /** Milliseconds until `email` may try to sign in again, or 0 when it is not locked. */
   lockoutRemaining(email: string): number;
 }
@@ -73,6 +82,9 @@ export const DEFAULT_MAX_FAILED_ATTEMPTS = 5;
 export const DEFAULT_LOCKOUT_MS = 30_000;
 const DEFAULT_LATENCY: readonly [number, number] = [650, 1200];
 
+export const RATE_LIMITED_MESSAGE =
+  'Too many failed attempts. Sign-in is paused for a moment; the button shows when you can retry.';
+
 interface Account {
   readonly user: User;
   /**
@@ -93,14 +105,12 @@ function randomToken(): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-const seconds = (ms: number): number => Math.ceil(ms / 1000);
-
 /**
  * A mock authentication API with realistic behaviour: latency, a seeded demo account,
  * registration, typed errors and per-account rate limiting. Swapping it for a real client
  * only requires implementing {@link AuthService}.
  */
-export function createAuthService(options: AuthServiceOptions = {}): AuthService {
+export function createAuthService(options: AuthServiceOptions = {}): MockAuthService {
   const {
     latencyMs = DEFAULT_LATENCY,
     maxFailedAttempts = DEFAULT_MAX_FAILED_ATTEMPTS,
@@ -143,9 +153,10 @@ export function createAuthService(options: AuthServiceOptions = {}): AuthService
     return 0;
   };
 
+  // No number in the message: it would go stale while the UI counts down on the button.
   const rateLimited = (retryAfterMs: number): AuthError => ({
     code: 'rate-limited',
-    message: `Too many failed attempts. Try again in ${seconds(retryAfterMs)} seconds.`,
+    message: RATE_LIMITED_MESSAGE,
     retryAfterMs,
   });
 
@@ -188,7 +199,7 @@ export function createAuthService(options: AuthServiceOptions = {}): AuthService
       if (Object.keys(fields).length > 0) {
         return err({
           code: 'invalid-input',
-          message: 'Please correct the highlighted fields.',
+          message: 'Please fix the fields marked below.',
           fields,
         });
       }

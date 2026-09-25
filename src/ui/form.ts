@@ -15,6 +15,8 @@ export interface FormControllerOptions {
   readonly onSubmit: (controller: FormController) => Promise<void>;
   /** Called after every input event, for side effects like the strength meter. */
   readonly onInput?: (name: string, controller: FormController) => void;
+  /** Called whenever the pending state flips, e.g. to lock the card while a request runs. */
+  readonly onPendingChange?: (controller: FormController) => void;
   readonly signal: AbortSignal;
 }
 
@@ -26,8 +28,18 @@ interface FieldState {
   touched: boolean;
 }
 
+export const UNEXPECTED_ERROR_MESSAGE =
+  'Something went wrong. Check your connection and try again.';
+
+/** Delay before an unchanged alert is written again, so screen readers announce it anew. */
+const REANNOUNCE_DELAY_MS = 120;
+
 const isTextInput = (input: HTMLInputElement): boolean =>
   input.type !== 'checkbox' && input.type !== 'radio';
+
+/** Whether the user has put anything into the control yet. */
+const hasInput = (input: HTMLInputElement): boolean =>
+  isTextInput(input) ? input.value !== '' : input.checked;
 
 /**
  * A small, framework-free form controller.
@@ -44,12 +56,14 @@ export class FormController {
   readonly #fields = new Map<string, FieldState>();
   readonly #bus: AppBus;
   readonly #dependents: Readonly<Record<string, readonly string[]>>;
+  readonly #onPendingChange: ((controller: FormController) => void) | undefined;
   readonly #status: HTMLElement | null;
   readonly #submit: HTMLButtonElement | null;
   readonly #submitLabel: HTMLElement | null;
   readonly #idleLabel: string;
   #pending = false;
   #blocked = false;
+  #reannounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor({
     form,
@@ -59,20 +73,21 @@ export class FormController {
     dependents = {},
     onSubmit,
     onInput,
+    onPendingChange,
     signal,
   }: FormControllerOptions) {
     this.form = form;
     this.view = view;
     this.#bus = bus;
     this.#dependents = dependents;
+    this.#onPendingChange = onPendingChange;
     this.#status = form.querySelector('[data-form-status]');
     this.#submit = form.querySelector('[data-submit]');
     this.#submitLabel = form.querySelector('[data-submit-label]');
     this.#idleLabel = this.#submitLabel?.textContent.trim() ?? '';
 
     for (const [name, validate] of Object.entries(validators)) {
-      const input = form.elements.namedItem(name);
-      if (!(input instanceof HTMLInputElement)) throw new Error(`Missing form field "${name}"`);
+      const input = this.#element(name);
       const error =
         input.closest('[data-field]')?.querySelector<HTMLElement>('[data-error]') ?? null;
       this.#fields.set(name, { input, error, validate, touched: false });
@@ -97,7 +112,7 @@ export class FormController {
         if (!field || name === null) return;
         if (isTextFieldName(name)) this.#bus.emit('field:blur', { view, field: name });
         // Leaving an untouched, empty field is not an error yet: the user may be tabbing past.
-        if (field.input.value !== '' || field.touched) {
+        if (hasInput(field.input) || field.touched) {
           field.touched = true;
           this.validate(name);
         }
@@ -116,6 +131,18 @@ export class FormController {
       { signal },
     );
 
+    // `readOnly` does not stop checkboxes from toggling, so a pending form blocks clicks.
+    form.addEventListener(
+      'click',
+      (event) => {
+        const target = event.target;
+        if (this.#pending && target instanceof HTMLInputElement && !isTextInput(target)) {
+          event.preventDefault();
+        }
+      },
+      { signal },
+    );
+
     form.addEventListener(
       'submit',
       (event) => {
@@ -124,6 +151,10 @@ export class FormController {
       },
       { signal },
     );
+
+    signal.addEventListener('abort', () => {
+      clearTimeout(this.#reannounceTimer);
+    });
   }
 
   get pending(): boolean {
@@ -140,8 +171,9 @@ export class FormController {
     return this.input(name).value;
   }
 
+  /** Whether a checkbox is ticked. Works for any named checkbox, validated or not. */
   checked(name: string): boolean {
-    return this.input(name).checked;
+    return this.#element(name).checked;
   }
 
   /** Validates one field, shows or clears its message, and returns whether it is valid. */
@@ -173,22 +205,27 @@ export class FormController {
   }
 
   setStatus(message: string): void {
+    clearTimeout(this.#reannounceTimer);
     if (this.#status) this.#status.textContent = message;
   }
 
   setPending(pending: boolean, busyLabel?: string): void {
     this.#pending = pending;
     this.form.setAttribute('aria-busy', String(pending));
-    for (const field of this.#fields.values()) field.input.readOnly = pending;
+    for (const control of this.form.querySelectorAll('input')) {
+      if (isTextInput(control)) control.readOnly = pending;
+      else control.setAttribute('aria-disabled', String(pending));
+    }
 
     if (this.#submit) {
       // aria-disabled instead of disabled keeps the button focusable while it is busy.
       this.#submit.setAttribute('aria-busy', String(pending));
-      this.#submit.setAttribute('aria-disabled', String(pending));
+      this.#submit.setAttribute('aria-disabled', String(pending || this.#blocked));
     }
     if (this.#submitLabel) {
       this.#submitLabel.textContent = pending && busyLabel ? busyLabel : this.#idleLabel;
     }
+    this.#onPendingChange?.(this);
   }
 
   /** Temporarily refuses submission (e.g. during a lockout) and shows `label` on the button. */
@@ -202,10 +239,6 @@ export class FormController {
     this.#blocked = false;
     this.#submit?.setAttribute('aria-disabled', 'false');
     if (this.#submitLabel) this.#submitLabel.textContent = this.#idleLabel;
-  }
-
-  get blocked(): boolean {
-    return this.#blocked;
   }
 
   /** Empties one field and forgets that it was touched, e.g. a rejected password. */
@@ -226,6 +259,12 @@ export class FormController {
       field.input.removeAttribute('aria-invalid');
     }
     this.setStatus('');
+  }
+
+  #element(name: string): HTMLInputElement {
+    const input = this.form.elements.namedItem(name);
+    if (!(input instanceof HTMLInputElement)) throw new Error(`Missing form field "${name}"`);
+    return input;
   }
 
   #nameOf(target: EventTarget | null): string | null {
@@ -255,14 +294,44 @@ export class FormController {
     }
   }
 
+  /**
+   * Writes the current alert again. Live regions only announce changes, so pressing Enter on
+   * a blocked form would otherwise be met with silence.
+   */
+  #reannounceStatus(): void {
+    const status = this.#status;
+    const message = status?.textContent ?? '';
+    if (!status || message === '') return;
+    status.textContent = '';
+    clearTimeout(this.#reannounceTimer);
+    this.#reannounceTimer = setTimeout(() => {
+      status.textContent = message;
+    }, REANNOUNCE_DELAY_MS);
+  }
+
   async #handleSubmit(onSubmit: (controller: FormController) => Promise<void>): Promise<void> {
-    if (this.#pending || this.#blocked) return;
+    if (this.#pending) return;
+    if (this.#blocked) {
+      this.#reannounceStatus();
+      return;
+    }
     this.setStatus('');
     if (!this.validateAll()) {
       this.#bus.emit('auth:error', { view: this.view, code: 'invalid-form' });
       return;
     }
-    await onSubmit(this);
+    try {
+      await onSubmit(this);
+    } catch (error) {
+      // Expected failures are `Result` values; a throw means the network or a bug. Never
+      // leave the form spinning: report it, and let the user try again.
+      console.warn('Nebula: the request failed unexpectedly.', error);
+      this.setStatus(UNEXPECTED_ERROR_MESSAGE);
+      this.#bus.emit('auth:error', { view: this.view, code: 'unexpected' });
+    } finally {
+      // Read through the getter: `onSubmit` usually ends the pending state itself.
+      if (this.pending) this.setPending(false);
+    }
   }
 }
 

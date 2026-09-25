@@ -1,9 +1,11 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEMO_ACCOUNT } from '../src/lib/authService';
+import { DEMO_ACCOUNT, RATE_LIMITED_MESSAGE } from '../src/lib/authService';
+import { UNEXPECTED_ERROR_MESSAGE } from '../src/ui/form';
 import {
   $,
   blur,
+  descriptionOf,
   errorOf,
   eventsOf,
   field,
@@ -43,6 +45,9 @@ describe('sign-in form', () => {
     expect(document.activeElement).toBe(email);
     expect(eventsOf(page, 'auth:error')).toEqual([{ view: 'sign-in', code: 'invalid-form' }]);
     expect(eventsOf(page, 'auth:pending')).toEqual([]);
+    // The card reacts to invalid submits exactly like the galaxy does.
+    expect(page.card.dataset.feedback).toBe('error');
+    expect(page.card.classList.contains('is-shaking')).toBe(true);
   });
 
   it('does not nag while typing, validates after blur and clears the error on the fixing keystroke', () => {
@@ -107,6 +112,10 @@ describe('sign-in form', () => {
     expect($('[data-panel="form"]', page.signInFace).hidden).toBe(true);
     expect(document.activeElement).toBe(title);
     expect($('[data-success-text]', page.signInFace).textContent).toContain(DEMO_ACCOUNT.email);
+    // The expiry is a real <time> element, so it never wraps mid-date.
+    expect($('[data-success-text] time', page.signInFace).getAttribute('datetime')).toMatch(
+      /^\d{4}-\d{2}-\d{2}T/u,
+    );
     expect(page.card.dataset.feedback).toBe('success');
     expect(eventsOf(page, 'auth:success')).toEqual([{ view: 'sign-in', name: 'Demo' }]);
     expect(page.toasts.textContent).toContain(`Signed in as ${DEMO_ACCOUNT.email}`);
@@ -147,6 +156,8 @@ describe('sign-in form', () => {
     expect(password.value).toBe('');
     expect(password.hasAttribute('aria-invalid')).toBe(false);
     expect(document.activeElement).toBe(password);
+    // Focus lands on the password, whose description repeats the alert.
+    expect(descriptionOf(password)).toBe('Incorrect email or password.');
     expect(page.card.dataset.feedback).toBe('error');
     expect(page.card.classList.contains('is-shaking')).toBe(true);
     expect(eventsOf(page, 'auth:error')).toEqual([
@@ -178,24 +189,53 @@ describe('sign-in form', () => {
     submit(signInForm());
     await settle();
 
-    expect($('[data-form-status]', page.signInFace).textContent).toBe(
-      'Too many failed attempts. Try again in 3 seconds.',
-    );
+    const status = $('[data-form-status]', page.signInFace);
+    expect(status.textContent).toBe(RATE_LIMITED_MESSAGE);
     expect(label.textContent).toBe('Try again in 3s');
     expect(button.getAttribute('aria-disabled')).toBe('true');
 
-    // Submitting while blocked does nothing.
+    // Submitting while blocked sends nothing, but announces the alert again.
     type(field(page.signInFace, 'password'), DEMO_ACCOUNT.password);
     submit(signInForm());
     expect(eventsOf(page, 'auth:pending')).toHaveLength(1);
+    expect(status.textContent).toBe('');
+    await settle(200);
+    expect(status.textContent).toBe(RATE_LIMITED_MESSAGE);
 
-    await settle(1000);
+    await settle(800);
     expect(label.textContent).toBe('Try again in 2s');
 
     await settle(2000);
     expect(label.textContent).toBe('Sign in');
     expect(button.getAttribute('aria-disabled')).toBe('false');
-    expect($('[data-form-status]', page.signInFace).textContent).toBe('');
+    expect(status.textContent).toBe('');
+    expect(page.announcer.textContent).toBe('You can try signing in again.');
+  });
+
+  it('recovers when the auth service throws instead of returning an error', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    // A real client's fetch() rejects while offline; the form must not spin forever.
+    page = mountPage({
+      service: {
+        signIn: () => Promise.reject(new TypeError('Failed to fetch')),
+        register: () => Promise.reject(new TypeError('Failed to fetch')),
+      },
+    });
+    const button = $<HTMLButtonElement>('[data-submit]', page.signInFace);
+    type(field(page.signInFace, 'email'), DEMO_ACCOUNT.email);
+    type(field(page.signInFace, 'password'), DEMO_ACCOUNT.password);
+
+    submit(signInForm());
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    await settle(0);
+
+    expect(button.getAttribute('aria-busy')).toBe('false');
+    expect(button.getAttribute('aria-disabled')).toBe('false');
+    expect(field(page.signInFace, 'email').readOnly).toBe(false);
+    expect($('[data-form-status]', page.signInFace).textContent).toBe(UNEXPECTED_ERROR_MESSAGE);
+    expect(eventsOf(page, 'auth:error')).toEqual([{ view: 'sign-in', code: 'unexpected' }]);
+    expect(page.card.classList.contains('is-shaking')).toBe(true);
+    expect(warn).toHaveBeenCalledOnce();
   });
 
   it('types the demo credentials when the demo pill is used', async () => {
@@ -206,6 +246,67 @@ describe('sign-in form', () => {
     expect(field(page.signInFace, 'email').value).toBe(DEMO_ACCOUNT.email);
     expect(field(page.signInFace, 'password').value).toBe(DEMO_ACCOUNT.password);
     expect(document.activeElement).toBe($('[data-submit]', page.signInFace));
+  });
+
+  it('types the demo credentials one character at a time and restarts on a second click', async () => {
+    page = mountPage({ typingDelayMs: 10 });
+    const email = field(page.signInFace, 'email');
+    const pill = $<HTMLButtonElement>('[data-fill-demo]', page.signInFace);
+
+    pill.click();
+    await settle(30);
+    expect(email.value).toBe(DEMO_ACCOUNT.email.slice(0, 4));
+    expect(document.activeElement).toBe(email);
+
+    // A second click cancels the first run instead of interleaving two of them.
+    pill.click();
+    await settle(10_000);
+    expect(email.value).toBe(DEMO_ACCOUNT.email);
+    expect(field(page.signInFace, 'password').value).toBe(DEMO_ACCOUNT.password);
+    expect(document.activeElement).toBe($('[data-submit]', page.signInFace));
+  });
+
+  it('stops typing when the card flips away', async () => {
+    page = mountPage({ typingDelayMs: 10 });
+    $<HTMLButtonElement>('[data-fill-demo]', page.signInFace).click();
+    await settle(30);
+    $<HTMLButtonElement>('[data-flip="register"]', page.signInFace).click();
+    await settle(10_000);
+
+    expect(field(page.signInFace, 'email').value).toBe(DEMO_ACCOUNT.email.slice(0, 4));
+    expect(field(page.signInFace, 'password').value).toBe('');
+  });
+
+  it('does not focus the fields on touch screens, so the keyboard stays closed', async () => {
+    page = mountPage({ coarsePointer: true });
+    $<HTMLButtonElement>('[data-fill-demo]', page.signInFace).click();
+    await settle(0);
+
+    expect(field(page.signInFace, 'password').value).toBe(DEMO_ACCOUNT.password);
+    expect(eventsOf(page, 'field:focus')).toEqual([]);
+    expect(document.activeElement).toBe($('[data-submit]', page.signInFace));
+  });
+
+  it('keeps the card on its face while a request is pending', async () => {
+    page = mountPage();
+    const createLink = $<HTMLButtonElement>('[data-flip="register"]', page.signInFace);
+    const remember = field(page.signInFace, 'remember');
+    type(field(page.signInFace, 'email'), DEMO_ACCOUNT.email);
+    type(field(page.signInFace, 'password'), DEMO_ACCOUNT.password);
+    submit(signInForm());
+
+    expect(createLink.getAttribute('aria-disabled')).toBe('true');
+    createLink.click();
+    expect(page.card.dataset.view).toBe('sign-in');
+    // Checkboxes ignore readOnly, so the pending form blocks them explicitly.
+    remember.click();
+    expect(remember.checked).toBe(false);
+    expect(remember.getAttribute('aria-disabled')).toBe('true');
+
+    await settle();
+    expect(createLink.getAttribute('aria-disabled')).toBe('false');
+    expect(eventsOf(page, 'view:flip')).toEqual([]);
+    expect($('[data-panel="success"]', page.signInFace).hidden).toBe(false);
   });
 
   it('explains that password reset and social sign-in are simulated', () => {
@@ -301,15 +402,24 @@ describe('create account form', () => {
     expect(eventsOf(page, 'view:flip')).toEqual([{ view: 'register' }]);
   });
 
+  it('states the password requirements before the user types', async () => {
+    page = mountPage();
+    await openRegister();
+    const password = field(page.registerFace, 'password');
+
+    expect($('[data-strength]', page.registerFace).dataset.score).toBe('');
+    expect(descriptionOf(password)).toBe(
+      'Use 8 or more characters. A few random words work great.',
+    );
+  });
+
   it('updates the strength meter and publishes the score for the 3D core', async () => {
     page = mountPage();
     await openRegister();
     const meter = $('[data-strength]', page.registerFace);
     const password = field(page.registerFace, 'password');
-    expect(meter.hidden).toBe(true);
 
     type(password, 'password');
-    expect(meter.hidden).toBe(false);
     expect(meter.dataset.score).toBe('0');
     expect($('[data-strength-label]', page.registerFace).textContent).toBe('Very weak');
 
@@ -317,9 +427,14 @@ describe('create account form', () => {
     expect(meter.dataset.score).toBe('4');
     expect($('[data-strength-label]', page.registerFace).textContent).toBe('Excellent');
     expect($('[data-strength-hint]', page.registerFace).textContent).toBe('Great password.');
+    expect(descriptionOf(password)).toBe('Password strength: Excellent Great password.');
 
+    // Clearing the field brings the requirements back instead of a stale rating.
     type(password, '');
-    expect(meter.hidden).toBe(true);
+    expect(meter.dataset.score).toBe('');
+    expect(descriptionOf(password)).toBe(
+      'Use 8 or more characters. A few random words work great.',
+    );
     expect(eventsOf(page, 'password:strength')).toEqual([
       { score: null },
       { score: 0 },
@@ -351,6 +466,18 @@ describe('create account form', () => {
 
     type(field(page.registerFace, 'password'), 'Nebula#2027');
     expect(errorOf(confirm)).toBe('Passwords don’t match.');
+  });
+
+  it('does not flag the terms checkbox when a keyboard user merely tabs past it', async () => {
+    page = mountPage();
+    await openRegister();
+    const terms = field(page.registerFace, 'terms');
+
+    terms.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    blur(terms);
+
+    expect(errorOf(terms)).toBe('');
+    expect(terms.hasAttribute('aria-invalid')).toBe(false);
   });
 
   it('requires the terms to be accepted', async () => {
@@ -386,6 +513,10 @@ describe('create account form', () => {
     expect(document.activeElement).toBe(field(page.signInFace, 'password'));
     expect(field(page.registerFace, 'name').value).toBe('');
     expect(eventsOf(page, 'auth:reset')).toEqual([{ view: 'register' }]);
+    // The reset form shows the requirements again, not the last password's rating.
+    expect(descriptionOf(field(page.registerFace, 'password'))).toBe(
+      'Use 8 or more characters. A few random words work great.',
+    );
 
     // The new account really exists.
     type(field(page.signInFace, 'password'), 'Analytical#Engine1843');

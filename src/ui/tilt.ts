@@ -1,8 +1,13 @@
 import { damp } from '../lib/math';
+import type { LivePreference } from './dom';
 
 export interface TiltOptions {
   /** Maximum rotation in degrees at the card's edges. */
   readonly maxAngle?: number;
+  /** `(prefers-reduced-motion: reduce)`: no tilt at all while it matches. */
+  readonly reducedMotion: LivePreference;
+  /** `(hover: hover) and (pointer: fine)`: tilt only follows a real mouse or pen. */
+  readonly finePointer: LivePreference;
   readonly signal: AbortSignal;
 }
 
@@ -14,22 +19,29 @@ interface TiltState {
   glare: number;
 }
 
+const KEYS = ['rotateX', 'rotateY', 'glareX', 'glareY', 'glare'] as const;
 const RESPONSIVENESS = 9;
 const SETTLE_EPSILON = 0.005;
+/** Must match the perspective of `.card-tilt` in card.css. */
+const PERSPECTIVE = '1000px';
 
 /**
  * Pointer-driven 3D tilt with a moving glare highlight.
  *
- * Pointer events only record a target; a single rAF loop eases towards it and writes CSS
- * custom properties, so there is at most one style write per frame and the loop stops as
- * soon as the card is at rest. Disabled for touch input and reduced motion.
+ * Pointer events only record a target; a single rAF loop eases towards it. Each frame writes
+ * the transform on the tilt element and the glare position on the glare layers themselves,
+ * rather than inherited custom properties on the card, so a frame never restyles the form
+ * underneath. The loop stops as soon as the card is at rest. Disabled for touch input and
+ * reduced motion.
  */
-export function initTilt(element: HTMLElement, { maxAngle = 8, signal }: TiltOptions): void {
+export function initTilt(
+  element: HTMLElement,
+  { maxAngle = 8, reducedMotion, finePointer, signal }: TiltOptions,
+): void {
   // Measure the untransformed parent: the tilted element's own bounding box changes as it
   // rotates, which would feed back into the angle and make it wobble.
   const frame = element.parentElement ?? element;
-  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const glares = [...element.querySelectorAll<HTMLElement>('[data-glare]')];
 
   const current: TiltState = { rotateX: 0, rotateY: 0, glareX: 50, glareY: 0, glare: 0 };
   const target: TiltState = { ...current };
@@ -39,12 +51,15 @@ export function initTilt(element: HTMLElement, { maxAngle = 8, signal }: TiltOpt
   const isEnabled = (): boolean => finePointer.matches && !reducedMotion.matches;
 
   const write = (state: TiltState): void => {
-    const style = element.style;
-    style.setProperty('--tilt-x', `${state.rotateX.toFixed(3)}deg`);
-    style.setProperty('--tilt-y', `${state.rotateY.toFixed(3)}deg`);
-    style.setProperty('--glare-x', `${state.glareX.toFixed(2)}%`);
-    style.setProperty('--glare-y', `${state.glareY.toFixed(2)}%`);
-    style.setProperty('--glare-opacity', state.glare.toFixed(3));
+    element.style.transform =
+      state.rotateX === 0 && state.rotateY === 0
+        ? ''
+        : `perspective(${PERSPECTIVE}) rotateX(${state.rotateX.toFixed(3)}deg) rotateY(${state.rotateY.toFixed(3)}deg)`;
+    for (const glare of glares) {
+      glare.style.setProperty('--glare-x', `${state.glareX.toFixed(2)}%`);
+      glare.style.setProperty('--glare-y', `${state.glareY.toFixed(2)}%`);
+      glare.style.opacity = state.glare.toFixed(3);
+    }
   };
 
   const step = (time: number): void => {
@@ -52,10 +67,11 @@ export function initTilt(element: HTMLElement, { maxAngle = 8, signal }: TiltOpt
     lastTime = time;
 
     let moving = false;
-    for (const key of Object.keys(current) as (keyof TiltState)[]) {
+    for (const key of KEYS) {
       current[key] = damp(current[key], target[key], RESPONSIVENESS, dt);
       if (Math.abs(current[key] - target[key]) > SETTLE_EPSILON) moving = true;
     }
+    if (!moving) Object.assign(current, target);
     write(current);
 
     if (moving) {

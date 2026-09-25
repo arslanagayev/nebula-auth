@@ -3,6 +3,7 @@ import {
   createAuthService,
   DEFAULT_LOCKOUT_MS,
   DEMO_ACCOUNT,
+  RATE_LIMITED_MESSAGE,
   type AuthResult,
   type AuthServiceOptions,
 } from '../src/lib/authService';
@@ -122,7 +123,7 @@ describe('createAuthService', () => {
         ok: false,
         error: {
           code: 'rate-limited',
-          message: 'Too many failed attempts. Try again in 30 seconds.',
+          message: RATE_LIMITED_MESSAGE,
           retryAfterMs: DEFAULT_LOCKOUT_MS,
         },
       });
@@ -220,6 +221,7 @@ describe('createAuthService', () => {
       const result = await settle(setup().register({ name: 'A', email: 'bad', password: 'weak' }));
       expect(result.ok).toBe(false);
       expect(!result.ok && result.error.code).toBe('invalid-input');
+      expect(!result.ok && result.error.message).toBe('Please fix the fields marked below.');
       expect(!result.ok && Object.keys(result.error.fields ?? {}).sort()).toEqual([
         'email',
         'name',

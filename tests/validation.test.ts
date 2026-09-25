@@ -89,7 +89,7 @@ describe('validateName', () => {
   });
 
   it.each(['R2-D2', '<script>', '-Ada', 'Ada_Lovelace'])('rejects %s', (name) => {
-    expect(validateName(name)).toBe('Use letters, spaces, hyphens or apostrophes only.');
+    expect(validateName(name)).toBe('Use letters, spaces, periods, hyphens or apostrophes only.');
   });
 });
 
@@ -109,6 +109,12 @@ describe('validateNewPassword', () => {
   it('enforces the length limits', () => {
     expect(validateNewPassword('Ab1#xyz')).toBe('Use at least 8 characters.');
     expect(validateNewPassword(`Aa1#${'x9Q!'.repeat(32)}`)).toBe('Use 128 characters or fewer.');
+  });
+
+  it('counts characters, not UTF-16 code units, like the strength meter does', () => {
+    // Five astral-plane characters are ten UTF-16 units but only five characters.
+    expect(validateNewPassword('🌌🪐🚀🌠🌙')).toBe('Use at least 8 characters.');
+    expect(validateNewPassword('🌌🪐🚀🌠🛰️🌙☄️🔭')).not.toBe('Use at least 8 characters.');
   });
 
   it('rejects passwords below the minimum strength and explains why', () => {
