@@ -113,6 +113,8 @@ export function initFlip({
       if (!instant) await wait(duration * (1 - FOCUS_AT));
       from.dataset.settled = 'hidden';
       card.style.removeProperty('height');
+      // If a slow frame kept the face hidden a little longer than planned, focus it now.
+      if (target && !to.contains(document.activeElement)) target.focus({ preventScroll: true });
       // Someone who scrolled down to reach the switch link should see where focus went.
       target?.scrollIntoView({ block: 'nearest' });
       flipping = false;
