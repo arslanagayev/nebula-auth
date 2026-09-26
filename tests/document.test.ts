@@ -122,6 +122,12 @@ describe('published links', () => {
     expect(pkg.bugs.url).toBe(`${REPOSITORY}/issues`);
   });
 
+  it('gives link previews an absolute image URL on the live demo', () => {
+    const image = `${LIVE_DEMO}og-image.png`;
+    expect(doc.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(image);
+    expect(doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content')).toBe(image);
+  });
+
   it('links the README badges and demo to the real repository', () => {
     expect(readme).toContain(`${REPOSITORY}/actions/workflows/ci.yml/badge.svg`);
     expect(readme).toContain(`${REPOSITORY}/actions/workflows/deploy.yml/badge.svg`);
